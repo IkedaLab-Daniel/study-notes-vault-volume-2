@@ -13,12 +13,25 @@ const createHomepageTemplate = () => /*html*/`
 
       <main>
         <div class="book-list">
-          <button hx-get="/books" hx-target="closest div">Show Books</button>
+          <button hx-get="/books" hx-target=".book-list">Show Books</button>
         </div>
 
         <div class="add-book-form">
           <h2>What do you want to read?</h2>
           <!-- form template here later -->
+           <form action="">
+            <input 
+              type="text"
+              name="title"
+              placeholder="title"
+            \>
+            <input 
+              type="text"
+              name="author"
+              placeholder="author"
+            \>
+            <button hx-post="./books" hx-target=".book-list ul" hx-swap="beforeend">Add Book</button>
+           </form>
         </div>
       </main>
     </body>
