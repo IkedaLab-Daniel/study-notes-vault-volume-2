@@ -511,3 +511,136 @@ Result:
 * `dict["existing_key"] = new_value` = update a value
 * **Duplicate keys overwrite previous values**
 * Dictionary keys are used for lookup instead of numeric indexes
+
+# Python Sets and Tuples – Review Summary
+
+### Sets
+
+* A **set (`set`)** stores **unique values**.
+* Duplicate values are automatically removed.
+* Useful for:
+
+  * Removing duplicates
+  * Tracking unique items
+  * Fast membership/search operations
+* Sets are **mutable**: values can be added or removed, but individual elements cannot be changed.
+* Sets are **unordered** and do not have indexes.
+
+```python id="7p3h1q"
+ingredients = {"pasta", "tomato", "garlic", "pasta"}
+# {"pasta", "tomato", "garlic"}
+```
+
+### Creating a Set
+
+* Sets use **curly brackets `{}`** without key-value pairs.
+
+```python id="4m8x2c"
+ingredients_set = {"pasta", "tomato", "garlic"}
+```
+
+* Dictionaries also use `{}`, but dictionaries contain **colons `:`** between keys and values.
+
+```python id="6z9w1k"
+# Set
+{"pasta", "tomato"}
+
+# Dictionary
+{"pasta": 500}
+```
+
+### Converting to a Set
+
+* Use `set()` to convert another data structure into a set.
+* This process is called **casting**.
+
+```python id="2v5k7m"
+ingredients_set = set(ingredients_list)
+```
+
+* Converting a list to a set automatically removes duplicates.
+
+### Set Limitations
+
+* Sets have **no indexes**.
+* Cannot access elements by position:
+
+```python id="9c4w6y"
+ingredients_set[0]  # Error
+```
+
+### Sorting a Set
+
+* `sorted()` can sort set values.
+* It returns a **list**, not a set.
+
+```python id="5q8n3x"
+sorted(ingredients_set)
+```
+
+* Result is a list of unique values in sorted order.
+
+---
+
+# Tuples
+
+### Tuples
+
+* A **tuple (`tuple`)** is an **ordered, immutable** collection.
+* **Immutable** means its values cannot be:
+
+  * Changed
+  * Added
+  * Removed
+* Useful when data should remain unchanged, such as:
+
+  * Coordinates/location information
+  * Identifiers
+  * Fixed configuration data
+
+### Creating a Tuple
+
+* Use **parentheses `()`** with comma-separated values.
+
+```python id="1n6k4p"
+serving_sizes = (2, 4, 6, 8)
+```
+
+* Can also convert another data structure using `tuple()`.
+
+```python id="8x2m5q"
+tuple(my_list)
+```
+
+### Accessing Tuples
+
+* Tuples are ordered, so elements can be accessed using indexes like lists.
+* Indexing starts at **0**.
+
+```python id="3j7v9d"
+serving_sizes[1]
+```
+
+### Set vs. Tuple
+
+| Feature    | Set           | Tuple       |
+| ---------- | ------------- | ----------- |
+| Syntax     | `{}`          | `()`        |
+| Ordered    | ❌ No          | ✅ Yes       |
+| Indexed    | ❌ No          | ✅ Yes       |
+| Duplicates | ❌ No          | ✅ Yes       |
+| Mutable    | ✅ Add/remove  | ❌ Immutable |
+| Main use   | Unique values | Fixed data  |
+
+### Key Takeaways
+
+* **Set** = unique, unordered collection
+* `set()` = converts data to a set
+* Sets automatically remove duplicates
+* Sets have **no indexes**
+* `sorted(set)` = returns a sorted **list**
+* **Tuple** = ordered, immutable collection
+* `()` = creates a tuple
+* Tuples support indexing
+* `tuple()` = converts data to a tuple
+* Use tuples when data should **not be modified**
