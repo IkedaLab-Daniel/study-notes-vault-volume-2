@@ -166,3 +166,102 @@ Only `+` and `*` work with strings:
   * `+` = join
   * `*` = repeat
   * `-` and `/` = error
+
+# Python Strings – Review Summary
+
+### Strings
+
+* **Strings (`str`)** are one of the most commonly used Python data types.
+* Used for:
+
+  * Displaying messages
+  * Processing user input
+  * File names
+  * Formatting output
+  * Handling text data
+
+### Single vs. Double Quotes
+
+* Strings can use either **single (`'`) or double (`"`) quotes**.
+* Use double quotes when the string contains an apostrophe.
+
+```python id="j8rj3x"
+message = "Chef's recipe"
+```
+
+* Using single quotes around the same text can cause a **syntax error** because Python may interpret the apostrophe as the end of the string.
+
+### Multi-line Strings
+
+* Use **triple double quotes (`"""`)** for multi-line strings.
+* Useful for:
+
+  * Long text
+  * Recipe instructions
+  * Documentation
+  * Error messages
+  * Help text
+
+```python id="g7w6nb"
+recipe_instruction = """Step 1: Prepare the ingredients.
+Step 2: Cook the pasta.
+Step 3: Serve."""
+```
+
+### Methods
+
+* A **method** is a function associated with a particular data type.
+* String methods are used to **modify, transform, or standardize text**.
+* General syntax:
+
+```python id="8b4q8s"
+variable.method()
+```
+
+### `.replace()`
+
+* Replaces one part of a string with another.
+* Syntax:
+
+```python id="p5z9k1"
+variable.replace("old_text", "new_text")
+```
+
+Example:
+
+```python id="m0j6xk"
+welcome_message = welcome_message.replace("George", "John")
+```
+
+* First argument = text to replace
+* Second argument = replacement text
+
+### `.lower()`
+
+* Converts a string to **lowercase**.
+* Useful for standardizing input, such as email addresses.
+
+```python id="w7c4pn"
+ingredient_name.lower()
+```
+
+### `.upper()`
+
+* Converts a string to **uppercase**.
+
+```python id="w2q5sd"
+ingredient_name.upper()
+```
+
+* `.lower()` and `.upper()` do not require arguments.
+
+### Key Takeaways
+
+* `str` = text data
+* `'text'` and `"text"` both create strings
+* `"""text"""` = multi-line string
+* **Method** = function associated with a specific data type
+* `.replace(old, new)` = replaces text
+* `.lower()` = converts to lowercase
+* `.upper()` = converts to uppercase
+* Methods are called using **dot notation**: `variable.method()`
