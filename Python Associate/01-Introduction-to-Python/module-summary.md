@@ -66,59 +66,103 @@ print("Hello")
 * `#` = **comment**
 * Good development practice = **start small → iterate → test → document**
 
-Python Variables, Strings, and Integers – Review Summary
-Variables
-Variables store values so they can be reused throughout code.
-They work like labeled containers for data.
-Using variables makes code easier to read, update, and maintain.
-Basic syntax:
-ingredient_name = "Tomato"
-Data Types
-A data type describes what kind of information a value represents.
-Common examples:
-String → text
-Integer → whole number
-Boolean → True or False
-Python automatically determines the data type based on the stored value.
-Strings
-A string is text data.
-Strings can contain letters, numbers, spaces, and punctuation.
-Created using single (') or double (") quotes.
-message = "Hello, world!"
-recipe = "20-minute pasta recipe"
-Use double quotes when the text contains an apostrophe:
-ingredient = "Chef's secret seasoning"
-Variable Naming
-Python convention: use lowercase letters with underscores between words.
-Example:
-ingredient_name = "Tomato"
-ingredient_quantity = 2
-This naming style improves readability.
-Integers
-An integer (int) is a whole number without decimals or fractions.
-Do not use quotation marks for integers.
-ingredient_quantity = 2
-"2" → String
-2 → Integer
-Printing Variables
-print() can display the value stored in a variable.
-print(ingredient_name)
-print(ingredient_quantity)
-Python looks inside the variable and outputs its stored value.
-Changing Variables
-Variables can be updated/reassigned after creation.
-ingredient_quantity = 2
-ingredient_quantity = 1
-print(ingredient_quantity)
+# Common Python Data Types & Operators – Review Summary
 
-Output:
+### Float
 
-1
-Key Takeaways
-Variable = named storage for a value
-String = text, written inside quotes
-Integer = whole number, no quotes
-= = assigns a value to a variable
-print(variable) = displays the variable's current value
-Variables can be changed/reassigned
-Use lowercase_with_underscores for readable Python variable names
+* A **float** represents a number with a decimal.
+* Example:
+
+```python
+new_ingredient_quantity = 1.5
+```
+
+* Like integers, floats **do not use quotation marks**.
+
+### Boolean
+
+* A **boolean (`bool`)** stores only two possible values:
+
+  * `True`
+  * `False`
+* Used for **yes/no**, **on/off**, and decision-making.
+* `True` and `False` must:
+
+  * Start with a **capital letter**
+  * Have **no quotation marks**
+
+```python
+is_in_stock = True
+```
+
+* `"True"` is a **string**, not a boolean.
+
+### Four Common Data Types
+
+| Data Type | Purpose         | Example    |
+| --------- | --------------- | ---------- |
+| `str`     | Text            | `"Tomato"` |
+| `int`     | Whole numbers   | `2`        |
+| `float`   | Decimal numbers | `1.5`      |
+| `bool`    | True/False      | `True`     |
+
+### `type()` Function
+
+* `type()` identifies the **data type of a value or variable**.
+* Useful for **debugging** and checking data received from external sources.
+
+```python
+quantity = 1.5
+print(type(quantity))
+```
+
+* Helps verify that you're working with the expected data type.
+
+### Operators
+
+Operators are symbols used to perform computations.
+
+#### Arithmetic Operators
+
+| Operator | Operation      | Example |
+| -------- | -------------- | ------- |
+| `+`      | Addition       | `2 + 3` |
+| `-`      | Subtraction    | `5 - 2` |
+| `*`      | Multiplication | `2 * 3` |
+| `/`      | Division       | `6 / 2` |
+
+* Python handles operations between integers and floats automatically.
+
+### Operators with Strings
+
+Only `+` and `*` work with strings:
+
+* `+` → **concatenates/joins** strings
+
+```python
+"Hello " + "World"
+# "Hello World"
+```
+
+* `*` → **repeats** a string
+
+```python
+"Hi " * 3
+# "Hi Hi Hi "
+```
+
+* `-` and `/` **cannot be used with strings** and will cause an error.
+
+### Key Takeaways
+
+* `int` = whole numbers
+* `float` = decimal numbers
+* `bool` = `True` or `False`
+* `str` = text
+* `type()` = checks a value's data type
+* `+`, `-`, `*`, `/` = arithmetic operators
+* For strings:
+
+  * `+` = join
+  * `*` = repeat
+  * `-` and `/` = error
