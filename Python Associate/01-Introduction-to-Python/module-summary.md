@@ -390,3 +390,124 @@ ingredients[1::3]
 * `list[start:]` = from start index to end
 * `list[:end]` = from beginning to end index
 * `list[::step]` = access elements at intervals
+
+# Python Dictionaries – Review Summary
+
+### Dictionaries
+
+* A **dictionary (`dict`)** stores data as **key-value pairs**.
+* Useful when you need to represent a relationship between pieces of data.
+* Example: linking an ingredient to its quantity.
+
+```python id="5rj7vq"
+ingredients = {
+    "pasta": 500,
+    "tomato": 2,
+    "garlic": 3
+}
+```
+
+### Creating a Dictionary
+
+* Use **curly brackets `{}`**.
+* Each key-value pair follows:
+
+```python id="x5m8zn"
+"key": value
+```
+
+* Separate multiple pairs with commas.
+
+### Dictionary vs. List
+
+| Structure       | Purpose                | Access   |
+| --------------- | ---------------------- | -------- |
+| List `[]`       | Collection of values   | By index |
+| Dictionary `{}` | Related key-value data | By key   |
+
+### Accessing Values
+
+* Use the **key inside square brackets** instead of an index.
+
+```python id="t9p5xk"
+ingredients["pasta"]
+```
+
+* Returns the value associated with `"pasta"`.
+
+### Dictionary Methods
+
+#### `.values()`
+
+* Returns all **values**.
+
+```python id="z7h2qm"
+ingredients.values()
+```
+
+#### `.keys()`
+
+* Returns all **keys**.
+
+```python id="f1n6pa"
+ingredients.keys()
+```
+
+#### `.items()`
+
+* Returns all **key-value pairs**.
+* Each pair is represented as a **tuple**.
+
+```python id="k4v8dy"
+ingredients.items()
+```
+
+### Adding a Key-Value Pair
+
+* Assign a value to a **new key**:
+
+```python id="n3x6wb"
+ingredients["basil"] = 10
+```
+
+### Updating a Value
+
+* Assign a new value to an **existing key**:
+
+```python id="q6m2ks"
+ingredients["pasta"] = 600
+```
+
+### Duplicate Keys
+
+* Dictionaries **cannot have duplicate keys**.
+* If the same key appears multiple times, the **most recent value overwrites the previous value**.
+
+```python id="c8y4zn"
+ingredients = {
+    "garlic": 3,
+    "garlic": 5
+}
+```
+
+Result:
+
+```python id="w9k3pt"
+{"garlic": 5}
+```
+
+* Duplicate keys **do not cause an error**; they silently overwrite earlier values.
+
+### Key Takeaways
+
+* **Dictionary** = collection of key-value pairs
+* `{}` = creates a dictionary
+* `key: value` = key-value pair
+* `dict["key"]` = access a value
+* `.keys()` = all keys
+* `.values()` = all values
+* `.items()` = all key-value pairs
+* `dict["new_key"] = value` = add a pair
+* `dict["existing_key"] = new_value` = update a value
+* **Duplicate keys overwrite previous values**
+* Dictionary keys are used for lookup instead of numeric indexes
