@@ -65,3 +65,60 @@ print("Hello")
 * `print()` = **display output**
 * `#` = **comment**
 * Good development practice = **start small → iterate → test → document**
+
+Python Variables, Strings, and Integers – Review Summary
+Variables
+Variables store values so they can be reused throughout code.
+They work like labeled containers for data.
+Using variables makes code easier to read, update, and maintain.
+Basic syntax:
+ingredient_name = "Tomato"
+Data Types
+A data type describes what kind of information a value represents.
+Common examples:
+String → text
+Integer → whole number
+Boolean → True or False
+Python automatically determines the data type based on the stored value.
+Strings
+A string is text data.
+Strings can contain letters, numbers, spaces, and punctuation.
+Created using single (') or double (") quotes.
+message = "Hello, world!"
+recipe = "20-minute pasta recipe"
+Use double quotes when the text contains an apostrophe:
+ingredient = "Chef's secret seasoning"
+Variable Naming
+Python convention: use lowercase letters with underscores between words.
+Example:
+ingredient_name = "Tomato"
+ingredient_quantity = 2
+This naming style improves readability.
+Integers
+An integer (int) is a whole number without decimals or fractions.
+Do not use quotation marks for integers.
+ingredient_quantity = 2
+"2" → String
+2 → Integer
+Printing Variables
+print() can display the value stored in a variable.
+print(ingredient_name)
+print(ingredient_quantity)
+Python looks inside the variable and outputs its stored value.
+Changing Variables
+Variables can be updated/reassigned after creation.
+ingredient_quantity = 2
+ingredient_quantity = 1
+print(ingredient_quantity)
+
+Output:
+
+1
+Key Takeaways
+Variable = named storage for a value
+String = text, written inside quotes
+Integer = whole number, no quotes
+= = assigns a value to a variable
+print(variable) = displays the variable's current value
+Variables can be changed/reassigned
+Use lowercase_with_underscores for readable Python variable names
