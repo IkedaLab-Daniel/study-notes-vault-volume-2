@@ -265,3 +265,128 @@ ingredient_name.upper()
 * `.lower()` = converts to lowercase
 * `.upper()` = converts to uppercase
 * Methods are called using **dot notation**: `variable.method()`
+
+# Python Lists – Review Summary
+
+### Lists
+
+* A **list** stores multiple values in a single variable.
+* Useful for collections such as:
+
+  * Ingredients
+  * User inputs
+  * Database records
+* Created using **square brackets `[]`**, with values separated by commas.
+
+```python
+ingredients = ["tomato", "garlic", "onion", "basil"]
+```
+
+* Lists can contain values of **any data type** and can also use variables.
+
+### Checking List Type
+
+* Use `type()` to check whether a variable is a list.
+
+```python
+print(type(ingredients))
+```
+
+* The result is `<class 'list'>`, regardless of the data types stored inside.
+
+### List Indexing
+
+* Lists are **ordered and indexed**.
+* Python indexes start at **0**, not 1.
+
+```text
+Index:    0        1        2        3
+Value:  tomato   garlic   onion    basil
+```
+
+* Access an element using square brackets:
+
+```python
+ingredients[0]  # first element
+ingredients[3]  # fourth element
+```
+
+### Negative Indexing
+
+* `-1` accesses the **last element**.
+* Useful when the list length is unknown.
+
+```python
+ingredients[-1]
+```
+
+* `-2` = second-to-last, `-3` = third-to-last, etc.
+
+### List Slicing
+
+* Slicing extracts a **range of elements**.
+* Syntax:
+
+```python
+list[start:end]
+```
+
+* The `start` index is included.
+* The `end` index is **excluded**.
+
+```python
+ingredients[1:3]
+```
+
+* Returns indexes `1` and `2`.
+
+### Slicing to the End
+
+```python
+ingredients[3:]
+```
+
+* Gets everything from index `3` to the end.
+
+### Slicing from the Start
+
+```python
+ingredients[:3]
+```
+
+* Gets everything from the beginning up to, but **not including**, index `3`.
+
+### Step Values
+
+* Slicing can include a **step**:
+
+```python
+list[start:end:step]
+```
+
+* Every second element:
+
+```python
+ingredients[::2]
+```
+
+* Gets indexes `0, 2, 4, ...`
+
+* Starting at index `1`, every third element:
+
+```python
+ingredients[1::3]
+```
+
+### Key Takeaways
+
+* **List** = collection of multiple values
+* `[]` = creates/accesses a list
+* Indexing starts at **0**
+* `list[0]` = first element
+* `list[-1]` = last element
+* `list[start:end]` = slice/range
+* **End index is excluded**
+* `list[start:]` = from start index to end
+* `list[:end]` = from beginning to end index
+* `list[::step]` = access elements at intervals
