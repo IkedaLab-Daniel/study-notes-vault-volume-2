@@ -102,3 +102,27 @@ Key takeaway: Efficient MCP clients manage communication, context, and connectio
 | Module 3 | Client architecture, advanced features, optimization, and security |
 
 The course is part of the IBM RAG and Agentic AI Professional Certificates and focuses on practical skills for developing advanced AI applications that integrate external tools, data, and services through MCP.
+
+## MCP Tool-Calling Workflow
+
+1. User submits a question: The user asks a question through a chat application.
+2. LLM identifies available tools: The MCP host and client provide the LLM with information about the available tools. The LLM determines which tools are appropriate for the request.
+3. Host and client select the MCP server: Based on the LLM's tool selection, the host and client identify the MCP server that exposes the required tool.
+4. MCP server executes the tool: The server runs the requested operation, which may involve:
+   - Querying a database.
+   - Calling an external API.
+   - Executing local code.
+5. Server returns the result: The MCP server sends the tool's output back to the MCP client and host.
+6. LLM processes the result: The tool result is passed to the LLM, which uses it to formulate a response. Additional tool calls may occur if needed.
+7. Final answer is returned: The LLM generates the final answer and displays it in the chat application.
+
+## Why Use MCP?
+
+- Standardized integration: MCP provides a common protocol for connecting AI agents to external data sources and tools.
+- Reusability: An MCP server can expose capabilities that different compatible AI applications can use.
+- Reduced integration complexity: Developers do not need to build a completely different integration for every AI application and data source.
+- Industry relevance: Even if a developer does not build AI agents directly, their clients or other systems they integrate with may use agents. Understanding MCP helps developers build compatible services and integrations.
+
+## Key Takeaway
+
+MCP acts as a standardized bridge between AI applications and external capabilities. The LLM decides which tools are needed, the MCP client coordinates communication, and the MCP server executes the requested operations and returns their results.
