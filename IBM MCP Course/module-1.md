@@ -800,3 +800,95 @@ Typical use case: Connecting an AI application to a remotely hosted MCP server t
 - MCP's two primary transport mechanisms are STDIO for local communication and Streamable HTTP for HTTP-based communication, commonly with remote servers.
 
 Core concept: The host coordinates the AI experience, the client manages protocol communication, the server exposes capabilities, and the transport layer carries messages between clients and servers.
+
+## Model Context Protocol (MCP) Overview
+
+- Model Context Protocol (MCP) standardizes how AI applications connect to external APIs, tools, and data sources.
+- It acts like USB-C for AI agents, reducing the need to build custom integrations for every system.
+- MCP enables AI models to interact with repositories, communication platforms, mapping services, and other external tools through a common protocol.
+
+## How MCP Works
+
+1. The user submits a prompt to the AI application.
+2. The MCP host manages the main application and its connections.
+3. The MCP client interprets the task and communicates with one or more MCP servers.
+4. The client uses available server capabilities to select appropriate tools.
+5. The MCP server connects to external systems or APIs, executes the required operations, and returns results.
+6. The application processes the results and responds to the user.
+
+## MCP Architecture Components
+
+### 1. MCP Host
+
+- The main application where the AI model and user interaction run.
+- Contains MCP clients and coordinates access to the tools and data needed by the AI.
+
+### 2. MCP Client
+
+- Acts as the intermediary between the host and MCP servers.
+- Communicates with one or more servers, identifies appropriate capabilities, and manages the request-and-response process.
+
+### 3. MCP Server
+
+\- Connects the AI application to external systems and exposes capabilities through three main primitives:
+
+| Primitive | Purpose                                                      |
+| --------- | ------------------------------------------------------------ |
+| Tools     | Functions the AI can call to perform actions.                |
+| Resources | Data or contextual information the AI can access.            |
+| Prompts   | Predefined instructions or templates that guide AI behavior. |
+
+## Real-World Use Case 1: GitHub Integration
+
+An MCP server can connect an AI agent directly to the GitHub API, enabling automated repository management.
+
+Potential tasks include:
+
+- Pull request reviews: Identify potential problems in code changes.
+- Bug detection: Help detect bugs earlier by analyzing changes.
+- Coding standards: Encourage consistent code quality across a team.
+- Issue management: Sort and prioritize incoming issues.
+- Dependency maintenance: Help keep project dependencies updated.
+- Security scanning: Identify potential vulnerabilities and alert developers.
+- Repository management: Work with issues, branches, releases, and other repository features.
+
+Benefits: MCP can reduce repetitive maintenance work, help developers focus on building features, and support cleaner, more consistent codebases.
+
+## Real-World Use Case 2: Automated Customer Support
+
+MCP can connect an AI support agent to the systems commonly used by a customer service team.
+
+| System            | Purpose                                  |
+| ----------------- | ---------------------------------------- |
+| Customer database | Retrieve customer account information.   |
+| Billing system    | Verify payments and subscription status. |
+| Server logs       | Investigate technical problems.          |
+| Knowledge base    | Retrieve relevant help articles.         |
+| Ticketing system  | Create or update support tickets.        |
+
+### Example Workflow
+
+A customer reports that their subscription has expired even though they have already paid.
+
+The AI agent can:
+
+1. Look up the customer's account.
+2. Check billing records and verify payment.
+3. Update the subscription if necessary.
+4. Respond to the customer with the resolution.
+
+Benefits:
+
+- Faster customer support.
+- Reduced workload for human support staff.
+- More consistent troubleshooting.
+- Easier scaling as the company grows.
+- Potential for round-the-clock automated assistance.
+
+## Key Takeaways
+
+- MCP provides a standardized way for AI applications to communicate with external systems.
+- Its architecture consists of the host, client, and server.
+- MCP servers expose tools, resources, and prompts to AI applications.
+- MCP can automate tasks across software development, repository management, and customer support.
+- By reducing custom integration work and automating routine tasks, MCP allows developers and support teams to focus on higher-value work.
