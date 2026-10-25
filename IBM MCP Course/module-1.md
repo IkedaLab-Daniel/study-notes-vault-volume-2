@@ -304,3 +304,151 @@ Its main benefits are:
 Its applications span enterprise systems, agentic AI, DevOps, NetOps, SecOps, and RAG systems.
 
 **Core concept:** MCP standardizes how AI applications connect to external capabilities. It does not replace the tools, databases, or services themselves; it provides a consistent way to expose and access them.
+
+## Model Context Protocol (MCP) vs. Application Programming Interface (API)
+
+### Introduction
+
+Large language models (LLMs) often need to interact with external data sources, services, and tools to perform useful tasks. Traditionally, developers used **Application Programming Interfaces (APIs)** to connect applications to these systems.
+
+In November 2024, Anthropic introduced the **Model Context Protocol (MCP)**, an open standard that standardizes how AI applications connect to external tools and data sources and provide context to LLMs.
+
+Both APIs and MCP enable system integration, but they serve different roles.
+
+## What Is MCP?
+
+The **Model Context Protocol (MCP)** is an open protocol that standardizes communication between AI applications and external systems.
+
+MCP can be compared to a **USB-C port for AI applications**:
+- USB-C provides a common connection standard for different peripherals, regardless of manufacturer.
+- MCP provides a common integration standard for AI applications to access different tools, data sources, and services, regardless of their implementation.
+
+For example, an AI application can connect to separate MCP servers that provide access to a database, a code repository, and an email service.
+
+### MCP Architecture
+
+MCP uses a client-server architecture consisting of three main components:
+
+- **MCP Host:** The AI application that coordinates interactions with language models and MCP clients.
+- **MCP Client:** A component within the host that establishes and manages a connection to an MCP server.
+- **MCP Server:** A component that exposes capabilities, such as tools, resources, and prompts, to compatible clients.
+
+MCP communication uses **JSON-RPC 2.0** messages. Depending on the transport, communication can occur through mechanisms such as standard input/output (stdio) or HTTP-based transport.
+
+### MCP Primitives
+
+MCP servers can expose three main primitives:
+
+#### 1. Tools
+
+- Executable functions or actions that an AI application can invoke.
+- Allow AI agents to interact with external systems and perform operations.
+- Each tool can provide a name, description, input schema, and structured output.
+
+**Examples:**
+- A weather server exposing a `get_weather` tool.
+- A calendar server exposing a `create_event` tool.
+- A database server exposing a query tool.
+
+When a tool is invoked, the MCP server executes the underlying function and returns the result.
+
+#### 2. Resources
+
+- Read-oriented data items that an MCP server makes available to clients.
+- Provide contextual information that an AI application can retrieve when needed.
+
+**Examples:**
+- Text files and document contents.
+- Database schemas.
+- Knowledge base information.
+
+#### 3. Prompts
+
+- Reusable prompt templates exposed by an MCP server.
+- Provide predefined instructions or suggested prompt structures for particular tasks.
+
+**Example:** A code repository server might provide a prompt template for reviewing code changes.
+
+Not every MCP server exposes all three primitives. Many focus primarily on tools.
+
+### Runtime Capability Discovery
+
+MCP allows clients to discover the capabilities exposed by a server at runtime through standardized operations, including:
+
+- `tools/list`
+- `resources/list`
+- `prompts/list`
+
+This enables compatible clients to discover available functionality without requiring a custom integration for every individual tool.
+
+However, discovering a tool does not automatically grant permission to execute it. Access controls and application policies still apply.
+
+## What Is an API?
+
+An **Application Programming Interface (API)** defines a set of rules and conventions that allow one software system to interact with another system's functionality or data.
+
+APIs provide an abstraction layer between the requesting application and the service being accessed. The client does not need to understand the server's internal implementation; it only needs to know how to format requests and interpret responses.
+
+**Example:** An e-commerce application can use a payment API to process transactions without implementing the payment provider's internal payment infrastructure.
+
+### RESTful APIs
+
+One of the most common API styles is REST (Representational State Transfer), which typically uses HTTP methods to interact with resources.
+
+| HTTP Method | Typical Purpose | Example |
+|---|---|---|
+| `GET` | Retrieve data | `GET /books/123` |
+| `POST` | Create a resource or submit an operation | `POST /loans` |
+| `PUT` | Replace or update a resource | `PUT /books/123` |
+| `DELETE` | Delete a resource | `DELETE /books/123` |
+
+REST APIs commonly exchange data in JSON format.
+
+For example:
+- `GET /books/123` retrieves details about book 123.
+- `POST /loans` submits a request to create a book loan.
+
+APIs are also widely used to provide access to LLMs. An application can send a JSON request containing a prompt or messages to an LLM service and receive a JSON response.
+
+AI agents can likewise use REST APIs to perform web searches, access internal business services, and retrieve external data.
+
+## MCP vs. APIs
+
+| Aspect | MCP | APIs |
+|---|---|---|
+| Primary purpose | Standardizes how AI applications discover and interact with external capabilities and context | Defines how software systems expose and access functionality or data |
+| Scope | Specifically designed for AI context and capability integration | General-purpose software integration |
+| Architecture | Host, client, and server | Varies by API design and implementation |
+| Capability discovery | Supports standardized discovery of tools, resources, and prompts | Depends on the API and its documentation or discovery mechanisms |
+| Communication | Uses JSON-RPC 2.0 messages over supported transports | Depends on the API style; REST commonly uses HTTP |
+| Tool execution | Exposes tools through standardized MCP operations | Exposes functionality through API-specific operations or endpoints |
+| Data access | Can expose resources and tools for retrieving information | Can provide data through endpoints or other interface operations |
+| Reusability | MCP-compatible clients can reuse server integrations | API clients can reuse integrations when they follow the API's specifications |
+| Typical use cases | AI agents, context retrieval, tool discovery, and standardized AI integrations | Web services, payment processing, databases, enterprise systems, and many other applications |
+
+## How MCP and APIs Work Together
+
+MCP does not replace APIs. Instead, an MCP server can act as a standardized interface over existing APIs and services.
+
+For example, an AI agent that needs current weather information can use the following workflow:
+
+1. The user asks for the current weather.
+2. The MCP client discovers a `get_weather` tool exposed by an MCP server.
+3. The LLM determines that the tool is appropriate and requests its invocation.
+4. The MCP server calls an external weather API.
+5. The weather API returns the current weather data.
+6. The MCP server returns the result through MCP.
+7. The LLM uses the returned data to generate a response.
+
+This architecture allows the AI application to interact with the weather service through MCP without needing to implement the weather provider's API integration directly.
+
+## Key Takeaways
+
+- **MCP is a protocol for standardized AI integration**, while APIs are interfaces through which software systems expose functionality and data.
+- MCP uses a host-client-server architecture and JSON-RPC 2.0 messages.
+- MCP servers can expose tools, resources, and reusable prompt templates.
+- Runtime discovery allows compatible clients to identify available server capabilities.
+- REST APIs commonly use HTTP methods such as `GET`, `POST`, `PUT`, and `DELETE`.
+- MCP and APIs are complementary: MCP servers can use existing APIs to provide standardized capabilities to AI agents.
+
+**Core concept:** APIs enable software systems to communicate, while MCP standard
