@@ -604,3 +604,199 @@ This allows the AI application to interact with the weather service through MCP 
 - MCP and APIs are complementary: MCP servers can use existing APIs to provide standardized capabilities to AI agents.
 
 Core concept: APIs enable software systems to communicate, while MCP standardizes how AI applications discover and use external tools and contextual information. An MCP server can use an API internally to perform the actual operation.
+
+## MCP Client-Server Model
+
+### Learning Objectives
+
+After this lesson, you should be able to:
+
+- Explain the core primitives offered by an MCP server.
+- Describe the layers of a typical MCP architecture.
+- Identify the two primary transport mechanisms used by MCP.
+
+## Core Architectural Components
+
+The MCP client-server model consists of three main components: MCP Host, MCP Client, and MCP Server.
+
+### 1. MCP Host
+
+The MCP Host is the AI application where users interact with the underlying AI model. It coordinates and manages one or more MCP clients.
+
+Responsibilities:
+
+- Captures user input, including text, commands, and files.
+- Sends input to the AI model for processing.
+- Presents the AI's responses to the user.
+- Manages conversations and contextual information.
+- Handles interface controls and integration with other tools or systems.
+
+Examples: Visual Studio Code, Cursor, Windsurf, and desktop AI applications.
+
+Key takeaway: The host provides the interface and overall structure through which users interact with AI.
+
+### 2. MCP Client
+
+The MCP Client runs within the host application and manages communication with an MCP server.
+
+Responsibilities:
+
+- Sends structured requests using the MCP protocol and JSON-RPC.
+- Receives and interprets server responses.
+- Handles errors and manages communication sessions.
+- Handles interruptions, timeouts, reconnections, and session termination.
+- Provides server results to the host for use by the AI model.
+
+A single host can support multiple MCP clients. Each client maintains a one-to-one connection relationship with a specific MCP server.
+
+Key takeaway: The client acts as the communication gateway between the host and an MCP server.
+
+### 3. MCP Server
+
+The MCP Server exposes capabilities that allow AI applications to interact with external systems and access contextual information.
+
+Responsibilities:
+
+- Provides tools, resources, and prompts.
+- Connects to databases, APIs, local files, and external services.
+- Executes requested operations through its available tools.
+- Returns results and contextual information to MCP clients.
+
+Examples of integrations: Slack, GitHub, Git, Docker, and web search.
+
+MCP servers can be implemented using different programming languages, including Python, TypeScript, Java, and C#.
+
+Key takeaway: The server provides the capabilities and information that an AI application can access through MCP.
+
+## MCP Primitives
+
+MCP primitives define the capabilities and information that servers expose to AI applications.
+
+### 1. Tools
+
+- Executable functions that AI applications can invoke to perform actions.
+- May interact with external services, databases, APIs, or local files.
+
+Examples:
+
+- Performing calculations.
+- Sending messages.
+- Reading or modifying files.
+- Querying databases.
+- Retrieving data through API calls.
+
+### 2. Resources
+
+- Provide contextual information from internal or external data sources.
+- Supply data rather than performing actions or calculations.
+
+Examples:
+
+- File contents.
+- Database records.
+- API responses.
+- Other contextual information.
+
+### 3. Prompts
+
+- Reusable templates and workflows that structure interactions between the LLM and the server.
+- Help standardize and streamline common tasks.
+
+Example: A predefined prompt template for summarizing documents or reviewing code.
+
+### Comparison of MCP Primitives
+
+| Primitive | Main Purpose               | Example                                        |
+| --------- | -------------------------- | ---------------------------------------------- |
+| Tools     | Perform actions            | Send a message or query a database             |
+| Resources | Provide contextual data    | Retrieve file contents or database records     |
+| Prompts   | Provide reusable templates | Code review or document summarization template |
+
+## MCP Architecture Layers
+
+MCP is structured into two main layers: the data layer and the transport layer.
+
+### 1. Data Layer
+
+The inner layer defines the JSON-RPC-based client-server protocol.
+
+Responsibilities:
+
+- Defines the protocol for client-server communication.
+- Supports lifecycle management.
+- Handles core MCP primitives.
+- Structures requests, responses, and notifications.
+
+### 2. Transport Layer
+
+The transport layer surrounds the data layer and manages communication between MCP clients and servers.
+
+Responsibilities:
+
+- Establishes communication connections.
+- Handles message framing and transmission.
+- Supports two-way communication.
+- Provides mechanisms for authentication and secure communication.
+
+### JSON-RPC Message Types
+
+MCP uses JSON-RPC 2.0 messages for communication.
+
+- Requests: Ask the receiving component to perform an operation and normally require a response.
+- Responses: Return the result of a request or report an error.
+- Notifications: Send messages that do not require a response.
+
+The protocol structures MCP messages into JSON-RPC format for transmission and interprets incoming messages according to their defined types.
+
+## MCP Transport Mechanisms
+
+MCP supports two primary transport mechanisms: Standard Input/Output (stdio) and Streamable HTTP. Both transport JSON-RPC 2.0 messages.
+
+### 1. Standard Input/Output (stdio)
+
+STDIO is particularly useful for communication with locally running MCP servers.
+
+Characteristics:
+
+- Uses standard input and standard output for message exchange.
+- Provides lightweight communication between local processes.
+- Commonly used to access local files, databases, and locally available services.
+
+Typical use case: Running an MCP server locally on a developer's computer to provide an AI coding assistant with access to project files.
+
+### 2. Streamable HTTP
+
+Streamable HTTP supports communication with MCP servers over HTTP, making it suitable for remote server interactions.
+
+Characteristics:
+
+- Uses HTTP POST for client-to-server communication.
+- Supports optional Server-Sent Events (SSE) for streaming.
+- Accommodates HTTP authentication mechanisms, such as bearer tokens, API keys, and custom headers.
+- Supports secure communication with appropriate authentication and transport security.
+
+The MCP standard recommends using the OAuth authorization framework when obtaining authorization tokens for applicable deployments.
+
+Typical use case: Connecting an AI application to a remotely hosted MCP server that provides access to enterprise databases or external services.
+
+### STDIO vs. Streamable HTTP
+
+| Aspect             | STDIO                                      | Streamable HTTP                               |
+| ------------------ | ------------------------------------------ | --------------------------------------------- |
+| Communication      | Standard input/output                      | HTTP                                          |
+| Typical deployment | Local processes                            | Remote servers                                |
+| Main use           | Local resources and integrations           | Remote services and integrations              |
+| Streaming          | Not based on HTTP streaming                | Optional SSE support                          |
+| Authentication     | Depends on the local execution environment | Supports HTTP-based authentication mechanisms |
+
+## Summary
+
+- MCP consists of three architectural components: Host, Client, and Server.
+- The host manages the AI application and user interaction.
+- The client manages communication between the host and a particular MCP server.
+- The server exposes capabilities and contextual information through tools, resources, and prompts.
+- The data layer defines the protocol, message types, primitives, and lifecycle management.
+- The transport layer manages communication channels, message transmission, and relevant security mechanisms.
+- MCP's two primary transport mechanisms are STDIO for local communication and Streamable HTTP for HTTP-based communication, commonly with remote servers.
+
+Core concept: The host coordinates the AI experience, the client manages protocol communication, the server exposes capabilities, and the transport layer carries messages between clients and servers.
