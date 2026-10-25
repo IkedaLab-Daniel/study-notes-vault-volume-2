@@ -892,3 +892,135 @@ Benefits:
 - MCP servers expose tools, resources, and prompts to AI applications.
 - MCP can automate tasks across software development, repository management, and customer support.
 - By reducing custom integration work and automating routine tasks, MCP allows developers and support teams to focus on higher-value work.
+
+## Running Existing MCP Servers
+
+- FastMCP servers act like remote function libraries, allowing Python applications to access tools exposed by MCP servers instead of implementing every integration from scratch.
+- An MCP client connects to a server, discovers its available tools, invokes them with the required parameters, and receives the results.
+- Example: calling an `add` tool with parameters `a = 1` and `b = 2` returns `3`.
+
+## MCP Transport Mechanisms
+
+Transports define how messages travel between an MCP client and server.
+
+### 1. STDIO Transport
+
+- STDIO stands for Standard Input/Output.
+- Used to communicate with MCP servers running locally on the same system.
+- The client sends messages through STDIN (Standard Input), and the server returns messages through STDOUT (Standard Output).
+- Suitable for local tools, development, and testing without network connectivity.
+- Often launches a server as a subprocess.
+
+### 2. Streamable HTTP Transport
+
+- Uses HTTP to connect clients to MCP servers over a network.
+- The client communicates with the server through its HTTP endpoint.
+- Suitable for remote servers, cloud services, and applications running on different machines.
+- Supports communication over standard web protocols.
+
+Key difference: STDIO is primarily for local server processes, while Streamable HTTP is suited to remote server communication.
+
+## Other MCP Transports
+
+- Server-Sent Events (SSE): A legacy HTTP transport that has been superseded by Streamable HTTP. It uses an asymmetric communication model.
+- In-Memory Transport: Connects components directly within the same Python process, avoiding network overhead. Primarily useful for development and testing.
+
+STDIO and Streamable HTTP cover most common real-world use cases.
+
+## Connecting to MCP Servers with FastMCP
+
+The video demonstrates using Python's FastMCP client to connect to the Context7 MCP server, which provides up-to-date library documentation and API references formatted for LLMs.
+
+### STDIO Client Setup
+
+The general workflow is:
+
+1. Import `Client` and `stdio` transport functionality from FastMCP.
+2. Create a STDIO transport object configured to launch the MCP server.
+3. Pass the transport into the client constructor.
+4. Open the client connection using an asynchronous context manager.
+5. Discover the server's available tools.
+6. Call the desired tools and process their responses.
+
+The example uses `npx` to download and run the Context7 MCP server, with the `-y` flag to automatically confirm installation prompts.
+
+### Asynchronous Communication
+
+Python uses `async` and `await` to handle MCP operations without unnecessarily blocking other tasks.
+
+- `async with`: Establishes a context-managed connection and automatically handles cleanup.
+- `await`: Pauses the current asynchronous task until an operation completes, allowing other tasks to continue.
+- Asynchronous calls are useful because communication with MCP servers may take time.
+
+## Discovering and Inspecting Tools
+
+The client can request the available tools from an MCP server using `client.list_tools()`.
+
+Each tool object contains information such as:
+
+| Attribute     | Purpose                                                 |
+| ------------- | ------------------------------------------------------- |
+| `name`        | Identifies the tool.                                    |
+| `description` | Explains the tool's purpose and functionality.          |
+| `inputSchema` | Defines the tool's expected parameters and their types. |
+
+The video demonstrates two Context7 tools:
+
+- `resolve-library-id` — Searches for a library and identifies suitable Context7-compatible library IDs.
+- `get-library-docs` — Retrieves documentation for a selected library using its compatible ID.
+
+Tool discovery allows clients to understand which functions are available and what inputs those functions require.
+
+## Calling MCP Tools
+
+The general process for invoking tools is:
+
+1. Discover the available tools.
+2. Select the appropriate tool by name.
+3. Supply the required parameters.
+4. Await the server's response.
+5. Process the returned result.
+
+### Example: Retrieving FastMCP Documentation
+
+The video demonstrates a two-step workflow:
+
+1. Call `resolve-library-id` with the library name `FastMCP`.
+2. Use the resulting library ID as input to `get-library-docs`, along with a token limit of `5000`.
+
+The response contains documentation, code snippets, titles, descriptions, and source links.
+
+This demonstrates how an AI application can retrieve relevant technical documentation dynamically instead of relying exclusively on information already available in its context.
+
+## Using Streamable HTTP Instead of STDIO
+
+The HTTP client workflow is almost identical to the STDIO workflow.
+
+1. Import the Streamable HTTP transport.
+2. Create a transport object with the MCP server's URL.
+3. Pass the transport to the client constructor.
+4. Open the connection using `async with`.
+5. Discover tools with `client.list_tools()`.
+6. Invoke tools with `client.call_tool()`.
+
+The same tool-discovery and tool-calling operations work across both transports. The primary difference is the transport configuration; the client workflow remains consistent.
+
+## MCP Tool Compatibility with Agent Frameworks
+
+- MCP tools follow a standardized protocol, so clients must understand MCP's specifications to discover and invoke them.
+- Different agent frameworks may represent tools differently.
+- LangChain and LangGraph can use MCP adapter libraries to convert MCP tools into framework-compatible tool structures.
+- Adapters make it easier to integrate MCP servers into existing agent workflows.
+
+The term tool is used across different AI frameworks and protocols, but its representation and integration requirements can vary.
+
+## Key Takeaways
+
+- MCP servers bridge LLMs and external tools or services.
+- The two primary transports are STDIO for local servers and Streamable HTTP for remote servers.
+- FastMCP provides a Python client for discovering and calling MCP tools.
+- `client.list_tools()` discovers available tools, while `client.call_tool()` invokes them.
+- Tool metadata includes names, descriptions, and input schemas.
+- Python's asynchronous `async`/`await` pattern supports non-blocking communication.
+- The same client API can be used across different transports, making MCP integrations more consistent and portable.
+- Context7 demonstrates how MCP can provide LLMs with current library documentation and code examples.
