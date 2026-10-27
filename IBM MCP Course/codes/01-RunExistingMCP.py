@@ -1,5 +1,6 @@
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport, StdioTransport
+import asyncio
 
 stdio_transport = StdioTransport(
     command="npx",
@@ -13,10 +14,10 @@ stdio_client = Client(stdio_transport)
 
 
 async def client_call_tool():
-    # list of tools the server provides
-    tools = await stdio_client.list_tools()
-    print("Done")
-    len(tools)
-    print(tools[0].name)
+    async with stdio_client:
+        tools = await stdio_client.list_tools()
+        print("Done")
+        print(len(tools))
+        print(tools[0].name)
 
-client_call_tool()
+asyncio.run(client_call_tool())
