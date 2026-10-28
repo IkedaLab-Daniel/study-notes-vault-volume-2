@@ -1,3 +1,4 @@
+import asyncio
 import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -68,3 +69,35 @@ async def main():
     )
 
     print(response['messages'][-1].content)
+
+    	# Main interaction loop - allows continuous conversation with the agent
+    while True:
+        # Display menu options to the user
+        choice = input("""
+Menu:
+1. Ask the agent a question
+2. Quit
+Enter your choice (1 or 2): """)
+
+        if choice == "1":
+            # Get user's question
+            print("Your question")
+            query = input("> ")
+
+            # Send the user's question to the agent
+            # The agent will have access to the full conversation history
+            response = await agent.ainvoke(
+                {"messages": query},        # User's current question
+                config=config              # Maintains conversation thread
+            )
+            # Display the agent's response
+            print(response['messages'][-1].content)
+        else:
+            # Exit the program for any choice other than "1"
+            print("Goodbye!")
+            break
+
+# Entry point - runs the main function when script is executed directly
+if __name__ == "__main__":
+    # Use asyncio to run the async main function
+    asyncio.run(main())
