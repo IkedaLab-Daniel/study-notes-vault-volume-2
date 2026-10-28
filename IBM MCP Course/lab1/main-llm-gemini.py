@@ -52,3 +52,19 @@ async def main():
         tools=tools,                    # tools in the MCP
         checkpointer=checkpointer       # memory
     )
+
+    # -- Initial message
+
+    response = await agent.invoke(
+        {"messages": [
+            # ? System
+            {"role": "system",
+             "content": "You are a smart, useful agent with tools to access code library documentation and the Met Museum collection."},
+            # ? user message
+            {"role": "user",
+             "content": "Give a brief introduction of what you do and the tools you can access."}
+        ]},
+        config=config
+    )
+
+    print(response['messages'][-1].content)
