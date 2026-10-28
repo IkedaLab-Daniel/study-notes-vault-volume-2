@@ -46,4 +46,9 @@ async def main():
     # ? The thread_id ensure all messages in this sessions are grouped together
     config = {"configurable": {"thread_id": "conversation_id"}}
 
-
+    # ? 4 - ReAct Agent
+    agent = create_react_agent(
+        model=gemini_model,             # language model
+        tools=tools,                    # tools in the MCP
+        checkpointer=checkpointer       # memory
+    )
