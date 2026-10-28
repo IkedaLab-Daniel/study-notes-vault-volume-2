@@ -6,15 +6,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 
-
 load_dotenv()
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-3-flash-preview",
-    google_api_key=os.environ["GEMINI_API_KEY"],
-)
-
-response = llm.invoke("Hello, Gemini!")
 
 async def main():
     """
@@ -36,3 +28,22 @@ async def main():
             }
         }
     )
+
+    # Init Gemini language Model
+    # this model will power the AI agent's reasoning and responses
+    gemini_model = ChatGoogleGenerativeAI(
+        model="gemini-3-flash-preview",
+        google_api_key=os.environ["GEMINI_API_KEY"],
+    )
+
+    # ? 1 - Retrieve all available tools from the configured MCP servers
+    tools = await client.get_tools()
+
+    # ? 2 - Set up conversation memory
+    checkpointer = InMemorySaver()
+
+    # ? 3 - Configure for conversation persistence
+    # ? The thread_id ensure all messages in this sessions are grouped together
+    config = {"configurable": {"thread_id": "conversation_id"}}
+
+
