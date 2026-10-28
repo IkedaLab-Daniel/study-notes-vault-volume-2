@@ -24,6 +24,7 @@ async def main():
                 "transport": "streamable_http",
             },
             "met-museum": {
+                "transport": "stdio",
                 "command": "npx",
                 "args": ["-y", "metmuseum-mcp"],
             }
@@ -33,7 +34,7 @@ async def main():
     # Init Gemini language Model
     # this model will power the AI agent's reasoning and responses
     gemini_model = ChatGoogleGenerativeAI(
-        model="gemini-3-flash-preview",
+        model="gemini-3.5-flash-lite",
         google_api_key=os.environ["GEMINI_API_KEY"],
     )
 
@@ -56,7 +57,7 @@ async def main():
 
     # -- Initial message
 
-    response = await agent.invoke(
+    response = await agent.ainvoke(
         {"messages": [
             # ? System
             {"role": "system",
