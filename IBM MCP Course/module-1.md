@@ -1024,3 +1024,119 @@ The term tool is used across different AI frameworks and protocols, but its repr
 - Python's asynchronous `async`/`await` pattern supports non-blocking communication.
 - The same client API can be used across different transports, making MCP integrations more consistent and portable.
 - Context7 demonstrates how MCP can provide LLMs with current library documentation and code examples.
+
+## Building an MCP Application with Python
+
+- The goal is to build an AI agent that uses MCP servers to access external tools, data, and capabilities.
+- The application combines MCP clients, transports, servers, an LLM, and conversation memory.
+- The video demonstrates a LangGraph ReAct agent powered by GPT-5 and a command-line interface (CLI) that maintains conversation context.
+
+## MCP Application Workflow
+
+1. The user submits a prompt requiring an external tool.
+2. The agent determines which MCP tool to use and extracts its required parameters.
+3. The MCP client sends the tool request through the appropriate transport.
+4. The MCP server processes the request and returns the result.
+5. The agent uses the result to generate a response for the user.
+
+## MultiServer MCP Client
+
+The MultiServer MCP Client allows an application to connect to multiple MCP servers simultaneously, including both STDIO and HTTP servers.
+
+- Accepts a list or dictionary of server configurations.
+- Manages low-level transport and connection details.
+- Retrieves tools from multiple connected servers.
+- Allows the agent to select tools based on the user's request.
+- Has no documented hard limit on the number of connected servers; practical limits depend on available resources and application design.
+
+## Example: Connecting Two MCP Servers
+
+The application integrates two real-world MCP servers:
+
+| MCP Server    | Transport | Purpose                                                                                                               |
+| ------------- | --------- | --------------------------------------------------------------------------------------------------------------------- |
+| Context7      | HTTP      | Searches library documentation and returns LLM-friendly technical references.                                         |
+| MetMuseum MCP | STDIO     | Accesses the Metropolitan Museum of Art's collection, including artwork metadata, images, and historical information. |
+
+The agent selects tools based on the user's prompt:
+
+- "What is scikit-learn?" → Uses Context7 to retrieve library documentation.
+- "Tell me about the Met" → Uses MetMuseum tools to retrieve museum information.
+- Art-related questions can use tools to list departments, search museum objects, and retrieve object details and images.
+
+## Core Python Components
+
+### 1. MultiServer MCP Client
+
+Configures connections to multiple MCP servers and retrieves their available tools.
+
+### 2. ReAct Agent
+
+`create_react_agent` builds an agent that uses a language model to reason about user requests and select appropriate tools.
+
+### 3. Language Model (LLM)
+
+The LLM interprets prompts, decides which tools are relevant, and generates responses using the results.
+
+### 4. InMemorySaver
+
+Stores conversation state so the agent can retain context across multiple interactions.
+
+### 5. Asyncio
+
+Supports asynchronous execution, allowing MCP communication to proceed without unnecessarily blocking other tasks.
+
+## Tool Discovery and Agent Initialization
+
+The application follows this general setup process:
+
+1. Import and initialize the MultiServer MCP Client.
+2. Configure the Context7 HTTP server and MetMuseum STDIO server.
+3. Retrieve available tools from all connected servers using the client's tool-retrieval method.
+4. Initialize the language model.
+5. Create an `InMemorySaver` object for conversation memory.
+6. Configure the agent with a `thread_id`.
+7. Create the ReAct agent with the language model, MCP tools, and memory configuration.
+
+The retrieved tools are passed to the agent so it can determine which functions to call for different user requests.
+
+## Conversation Memory and Session Management
+
+- InMemorySaver preserves conversation context across multiple exchanges.
+- `thread_id` identifies a conversation thread or session.
+- Different thread IDs allow multiple conversations to maintain separate contexts.
+- Session persistence allows the agent to use previous messages when responding to follow-up questions.
+
+## Building a Looping CLI Chatbot
+
+The video demonstrates a basic command-line interface that repeatedly accepts user input.
+
+1. Display a menu with two options:
+   - `1` — Ask a question.
+   - `2` — Exit.
+2. If the user chooses `1`, request their question.
+3. Send the question to the agent using its invocation method.
+4. Print the agent's response.
+5. Continue the loop until the user chooses `2`.
+
+The agent first receives an introductory prompt describing its role, capabilities, and available tools.
+
+## Running Asynchronous Python Applications
+
+When implementing the application in a Python file, wrap the asynchronous workflow in an `async main()` function and execute it using:
+
+```
+if __name__ == "__main__":    asyncio.run(main())
+```
+
+This provides an entry point for running the asynchronous application.
+
+## Key Takeaways
+
+- MCP applications combine servers, clients, transports, LLMs, and tools into a unified agent workflow.
+- STDIO is used for local MCP servers, while HTTP is used for remote MCP servers.
+- The MultiServer MCP Client supports multiple servers and both transport types simultaneously.
+- Agents can dynamically select tools from different MCP servers according to the user's request.
+- `InMemorySaver` and `thread_id` support conversation context and session management.
+- `asyncio` enables asynchronous execution, and `asyncio.run(main())` starts the application.
+- A looping CLI provides a simple way to interact repeatedly with a session-aware AI agent.
