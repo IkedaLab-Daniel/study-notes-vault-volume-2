@@ -14,22 +14,33 @@ models = [
         "free_quota": "14.4k RPD"
     },
     {
-
+        "model_name": "Gemini 3.1 Flash Lite",
+        "sdk_name": "gemini-3.1-flash-lite",
+        "speed-check": "1.91s",
+        "i_think": "damn it's fast - 1.91s on first try",
+        "free_quota": "500 RPD"
+    },
+    {
+        "model_name": "Gemini 3.5 Flash Lite",
+        "sdk_name": "gemini-3.5-flash-lite",
+        "speed-check": "1.40s",
+        "i_think": "faster than i expected. with same quote as 3.1 flash, but higher version, i thought it would be slow but nahh brah",
+        "free_quota": "500 RPD"
     }
 ]
 
 llm = ChatGoogleGenerativeAI(
-    model="gemma-4-31b-it",
+    model="gemini-3.5-flash-lite",
     google_api_key=os.getenv("GEMINI_API_KEY")
 )
 
 start_time = time.time()
-response = llm.invoke("Hello. Are u gemma-4?")
+response = llm.invoke("Hello. What is your llm model name? Are you gemini? What version?")
 end_time = time.time()
 
 elapsed_time = end_time - start_time
 
 print("--- Response ---")
-print(response.content)
+print(response.content[0]["text"])
 print("\n----------------")
 print(f"Time elapsed: {elapsed_time:.2f} seconds")
