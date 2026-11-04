@@ -125,3 +125,17 @@ def read_document(name: str) -> str:
 @mcp.prompt(title="Code Review")
 def review_code(code: str) -> str:
     return f"Please review this code:\n\n{code}"
+
+## -- Creating a Clinet - In-memory Transport ———————————
+print("—————————— Creating a Clinet - In-memory Transport ——————————")
+
+client = Client(mcp)
+print(f"client: {client}")
+
+async def call_add_tool(a: int, b: int):
+    async with client:
+        result = await client.call_tool("add", {"a": a, "b": b})
+        return result
+
+response = call_add_tool(4,5)
+print(response)
