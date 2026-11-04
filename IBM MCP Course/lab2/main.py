@@ -137,5 +137,18 @@ async def call_add_tool(a: int, b: int):
         result = await client.call_tool("add", {"a": a, "b": b})
         return result
 
-response = call_add_tool(4,5)
+
+response = asyncio.run(call_add_tool(4,5))
 print(response)
+
+# The actual answer/data
+print("\nResult Data .data :")
+print(response.data)  # 9
+
+# Content (text format)
+print("\nContent (as text):")
+print(response.content[0].text)  # "9"
+
+# Structured content (as dictionary)
+print("\nStructured Content:")
+print(response.structured_content)  
