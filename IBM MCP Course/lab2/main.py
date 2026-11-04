@@ -206,3 +206,16 @@ message = response.messages[0]
 print(f"Prompt role: {message.role}")
 print(f"Prompt content: {message.content.text}")
 
+## ——— HTTP Transport MCP Server ———
+print("——— HTTP Transport MCP Server ———")
+
+## ——— HTTP Transport MCP Server ———
+
+if __name__ == "__main__":
+    print("Starting HTTP MCP Server...")
+
+    mcp.run(
+        transport="http",
+        host="127.0.0.1",
+        port=PORT
+    )
