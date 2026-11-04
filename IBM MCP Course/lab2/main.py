@@ -192,3 +192,17 @@ print(f"uri:      {resource.uri}")
 print(f"mimeType: {resource.mimeType}")
 print(f"meta:     {resource.meta}")
 print(f"text:     {resource.text}")
+
+## ——— Prompts —————————————————————
+print("——————— Prompts ————————")
+
+async def call_prompt(code):
+    async with client:
+        result = await client.get_prompt("review_code", {"code": code})
+        return result
+
+response = asyncio.run(call_prompt("hello_world('print')"))
+message = response.messages[0]
+print(f"Prompt role: {message.role}")
+print(f"Prompt content: {message.content.text}")
+
