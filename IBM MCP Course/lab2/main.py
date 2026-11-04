@@ -152,3 +152,20 @@ print(response.content[0].text)  # "9"
 # Structured content (as dictionary)
 print("\nStructured Content:")
 print(response.structured_content)  
+
+## --- Now let's try subsctract tool --- ##
+async def call_subtract_tool(a: int, b: int):
+    async with client:
+        result = await client.call_tool("subtract", {"a": a, "b": b})
+        return result
+
+response = asyncio.run(call_subtract_tool(4, 5))
+print(response)
+
+# The actual answer/data
+print("\nResult Data .data :")
+print(response.data) 
+print("\nContent (as text):")
+print(response.content[0].text) 
+print("\nStructured Content:")
+print(response.structured_content) 
