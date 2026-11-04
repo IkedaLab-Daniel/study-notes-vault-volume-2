@@ -169,3 +169,26 @@ print("\nContent (as text):")
 print(response.content[0].text) 
 print("\nStructured Content:")
 print(response.structured_content) 
+
+## ————  Resource —————————————————————-
+async def call_resource(name):
+    async with client:
+        result = await client.read_resource(f"file:///endpoint/{name}")
+        return result
+
+response = asyncio.run(call_resource("README.txt"))
+print(response[0].text)
+
+async def call_resource2(name):
+    async with client:
+        result = await client.read_resource(f"file://endpoint2/{name}")
+        return result
+
+response = asyncio.run(call_resource2("README.txt"))
+print(response)
+
+resource = response[0]
+print(f"uri:      {resource.uri}")
+print(f"mimeType: {resource.mimeType}")
+print(f"meta:     {resource.meta}")
+print(f"text:     {resource.text}")
