@@ -698,3 +698,197 @@ SQL Server automatically manages the hidden system columns required for graph tr
 | GRAPH      | Simplifies complex relationships | Requires specialized syntax               |
 
 Key takeaway: Select specialized table types based on workload requirements rather than using standard tables for everything. In-memory tables optimize speed, temporal tables preserve history, external tables enable data virtualization, ledger tables provide tamper evidence, and graph tables simplify complex relationships. These architectural decisions are best made during initial database design because changing them after deployment can be difficult.
+
+# Enforce data integrity with constraints
+
+## Understand Database Constraints
+
+- Constraints enforce data integrity rules directly in the database engine, regardless of whether data comes from applications, direct SQL queries, scripts, or bulk imports.
+- Unlike application-level validation, constraints provide a centralized and consistent source of truth.
+- Every `INSERT`, `UPDATE`, and `DELETE` must satisfy applicable constraints before the database commits changes.
+- Poor data quality can cause duplicate records, failed integrations, incorrect decisions, and compliance issues.
+
+### Types of Constraints
+
+| Constraint    | Purpose                                        | Example                               |
+| ------------- | ---------------------------------------------- | ------------------------------------- |
+| `PRIMARY KEY` | Uniquely identifies each row; disallows `NULL` | Customer ID                           |
+| `FOREIGN KEY` | Maintains referential integrity between tables | Orders must reference valid customers |
+| `UNIQUE`      | Prevents duplicate values                      | Unique email addresses or SKUs        |
+| `CHECK`       | Restricts values using logical conditions      | Salary must be at least 20,000        |
+| `NOT NULL`    | Requires a value in a column                   | Customer name                         |
+| `DEFAULT`     | Supplies a value when an `INSERT` omits one    | Default creation date                 |
+
+### Primary Key Constraints
+
+- Guarantees unique row identification and entity integrity.
+- A table can have only one primary key constraint, although it can contain multiple columns (composite primary key).
+- All primary key columns must be `NOT NULL`.
+- SQL Server automatically creates a unique index for the primary key.
+
+```
+CREATE TABLE Customer (
+    CustomerID INT PRIMARY KEY IDENTITY(1,1),
+    EmailAddress NVARCHAR(100) NOT NULL
+);
+```
+
+### Foreign Key Constraints
+
+- Enforce referential integrity by ensuring referenced values exist in the parent table.
+- Prevent changes or deletions to referenced parent records when those changes would invalidate existing relationships.
+- Support cascading actions:
+  - `CASCADE` – propagates updates or deletes.
+  - `SET NULL` – sets referencing foreign keys to `NULL`.
+  - `SET DEFAULT` – assigns the column's default value.
+- Indexing foreign key columns isn't required, but is often beneficial because they're frequently used in joins.
+
+```
+CREATE TABLE Order (
+    OrderID INT PRIMARY KEY IDENTITY,
+    CustomerID INT NOT NULL,
+    OrderDate DATETIME2,
+    FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+);
+```
+
+### Unique Constraints
+
+- Prevent duplicate values in columns that aren't necessarily primary keys.
+- Unlike primary keys, `UNIQUE` constraints allow `NULL`.
+- SQL Server allows only one `NULL` value per column under a unique constraint.
+- Automatically creates a unique nonclustered index.
+
+```
+CREATE TABLE Product (
+    ProductID INT PRIMARY KEY,
+    SKU NVARCHAR(50) UNIQUE,
+    ProductName NVARCHAR(100)
+);
+```
+
+### Check Constraints
+
+- Enforce domain integrity by restricting acceptable values through logical expressions.
+- Can apply to one or multiple columns.
+- Multiple `CHECK` constraints can be applied to a single column.
+- Important: `NULL` evaluates to `UNKNOWN`, not `FALSE`. Therefore, a condition such as `CHECK (MyColumn = 10)` can still allow `NULL`. Combine it with `NOT NULL` if nulls must be rejected.
+
+```
+CREATE TABLE Employee (
+    EmployeeID INT PRIMARY KEY,
+    HireDate DATE,
+    Salary DECIMAL(10,2),
+    CHECK (Salary >= 20000),
+    CHECK (HireDate <= GETDATE())
+);
+```
+
+### Default Constraints
+
+- Provide automatic values when an `INSERT` statement doesn't specify a column value.
+- Explicitly name constraints in database projects to avoid inconsistent system-generated names across environments.
+
+```
+CREATE TABLE Activity (
+    ActivityID INT PRIMARY KEY IDENTITY,
+    Description NVARCHAR(200),
+    CreatedDate DATETIME2
+        CONSTRAINT DF_Activity_CreatedDate DEFAULT GETUTCDATE(),
+    IsActive BIT
+        CONSTRAINT DF_Activity_IsActive DEFAULT 1
+);
+```
+
+## Use Sequence Objects
+
+A sequence object is a schema-bound database object that generates numeric values independently of any table.
+
+Unlike `IDENTITY`, sequences aren't tied to a particular table. Applications explicitly request sequence values using `NEXT VALUE FOR`.
+
+### Identity vs. Sequence
+
+| Feature                                  | Sequence | Identity |
+| ---------------------------------------- | -------- | -------- |
+| Tied to a table                          | No       | Yes      |
+| Shared across multiple tables            | Yes      | No       |
+| Retrieve value before inserting          | Yes      | No       |
+| Custom minimum/maximum                   | Yes      | Limited  |
+| Retrieve multiple values at once         | Yes      | No       |
+| Cycle/restart at specified number        | Yes      | No       |
+| Generate values ordered by another field | Yes      | No       |
+| Change increment after creation          | Yes      | No       |
+
+### When to Use Each
+
+Use `IDENTITY` when:
+
+- You need a straightforward auto-incrementing primary key.
+- Numbering is limited to one table.
+- You don't need to retrieve the next value before inserting.
+
+Use `SEQUENCE` when:
+
+- Shared number series: Multiple tables or columns need the same numbering series.
+- Cycling numbers: Values should restart after reaching a specified limit.
+- Sorted sequence values: Values must be generated according to an `ORDER BY` clause using `NEXT VALUE FOR ... OVER`.
+- Batch reservations: You need to reserve multiple sequential numbers using `sp_sequence_get_range`.
+- Changeable specifications: You need to modify sequence settings, such as the increment value.
+
+### Sequence Limitations
+
+- Sequence values aren't automatically protected after insertion into a table.
+- Uniqueness isn't automatically enforced. Add a `UNIQUE` constraint if duplicate values must be prevented.
+- Sequence values are generated outside the current transaction.
+- Values are consumed even if the transaction rolls back, potentially creating gaps.
+
+### Creating and Using a Sequence
+
+```
+-- Create sequence
+CREATE SEQUENCE OrderNumber
+    START WITH 1000
+    INCREMENT BY 1
+    MINVALUE 1000
+    MAXVALUE 999999
+    NO CYCLE;
+
+-- Use sequence during INSERT
+INSERT INTO Order (OrderID, CustomerID, OrderNumber, OrderDate)
+VALUES (1, 100, NEXT VALUE FOR OrderNumber, GETDATE());
+
+-- Retrieve next value before INSERT
+DECLARE @NextOrderNum INT = NEXT VALUE FOR OrderNumber;
+SELECT @NextOrderNum;
+
+-- Reserve multiple values (100 numbers)
+DECLARE @FirstSeq INT, @LastSeq INT;
+
+EXEC sp_sequence_get_range
+    @sequence_name = N'OrderNumber',
+    @range_size = 100,
+    @range_first_value = @FirstSeq OUTPUT,
+    @range_last_value = @LastSeq OUTPUT;
+
+-- Reset sequence
+ALTER SEQUENCE OrderNumber RESTART WITH 1000;
+```
+
+### Important Sequence Operations
+
+| Statement / Function                     | Purpose                                    |
+| ---------------------------------------- | ------------------------------------------ |
+| `CREATE SEQUENCE`                        | Creates a sequence object                  |
+| `NEXT VALUE FOR`                         | Retrieves the next sequence value          |
+| `sp_sequence_get_range`                  | Reserves a range of sequential values      |
+| `ALTER SEQUENCE ... RESTART WITH`        | Restarts the sequence at a specified value |
+| `NEXT VALUE FOR ... OVER (ORDER BY ...)` | Generates values in the specified ordering |
+
+## Key Takeaways
+
+- Constraints protect data integrity at the database level, regardless of which application or tool accesses the database.
+- Use `PRIMARY KEY` for entity integrity, `FOREIGN KEY` for relationships, `UNIQUE` for duplicate prevention, `CHECK` for valid values, `NOT NULL` for required fields, and `DEFAULT` for automatic values.
+- Don't rely exclusively on application validation; other applications, scripts, and bulk imports can bypass it.
+- Use `IDENTITY` for simple table-specific auto-incrementing keys.
+- Use `SEQUENCE` when numbering must be shared, reserved before insertion, retrieved in batches, or customized.
+- Remember that sequence values can have gaps, including when transactions roll back.
