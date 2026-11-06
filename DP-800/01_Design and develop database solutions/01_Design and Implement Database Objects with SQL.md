@@ -158,3 +158,135 @@ Additional Features:
 - SQL Database in Fabric: Transactional applications that need seamless integration with real-time analytics and OneLake.
 
 Key takeaway: Understand each platform's management responsibilities and capabilities before designing database objects. The platform determines which features are available and how much infrastructure management is required.
+
+# Build Effective Tables
+
+## Table Design and Implementation
+
+- Tables are fundamental relational database objects that organize data into rows and columns.
+- They represent entities and their attributes, enforce relationships through foreign keys, and support queries and reporting.
+- In analytical databases:
+  - Fact Tables: Store measurable events and transactions.
+  - Dimension Tables: Provide descriptive context for analysis.
+- Table design directly affects storage efficiency, query performance, data integrity, and scalability.
+
+## Choose Appropriate Data Types
+
+Selecting the correct data type during initial schema design prevents storage waste, performance issues, data loss, and expensive production migrations.
+
+| Category  | Data Types                            | Storage / Usage                                                                     |
+| --------- | ------------------------------------- | ----------------------------------------------------------------------------------- |
+| Numeric   | `INT`, `BIGINT`, `DECIMAL`, `FLOAT`   | INT: 4 bytes; BIGINT: 8 bytes; choose based on range and precision                  |
+| String    | `VARCHAR`, `CHAR`, `NVARCHAR`         | VARCHAR: variable-length; CHAR: fixed-length; NVARCHAR: Unicode (2 bytes/character) |
+| Date/Time | `DATE`, `DATETIME2`, `DATETIMEOFFSET` | DATE: 3 bytes; DATETIME2: 6–8 bytes; DATETIMEOFFSET: 10 bytes                       |
+| Binary    | `VARBINARY`, `IMAGE`                  | Stores binary data such as images and documents                                     |
+| Special   | `UNIQUEIDENTIFIER`, `XML`, `JSON`     | GUID: 16 bytes; XML: XML documents; JSON: native binary JSON (SQL Server 2025+)     |
+
+### Important Data Type Considerations
+
+- DECIMAL vs. FLOAT: Use `DECIMAL` for financial values because it provides exact precision. `FLOAT` can introduce rounding errors.
+- INT vs. UNIQUEIDENTIFIER: Use `INT` when sufficient. GUIDs consume 16 bytes compared to INT's 4 bytes, increasing index size and potentially slowing JOIN operations.
+- VARCHAR vs. NVARCHAR:
+  - `VARCHAR`: Generally uses 1 byte per character for ASCII data.
+  - `NVARCHAR`: Uses 2 bytes per character and supports Unicode.
+  - Use `NVARCHAR` for international characters and `VARCHAR` for ASCII-only data when appropriate.
+- DATETIME2 vs. DATETIME: Prefer `DATETIME2` for greater precision and modern date/time handling.
+
+Rule: Choose the smallest appropriate data type that safely accommodates the expected values and precision requirements.
+
+## Estimate Table Size Requirements
+
+Table size affects more than storage costs. It also impacts:
+
+- Backup and restore duration.
+- Index rebuild times.
+- Query performance and I/O requirements.
+- Cloud database resource costs.
+
+Example:
+
+- 100 million transactions daily.
+- An unnecessary additional 50 bytes per row.
+- Storage waste: 5 GB/day or approximately 1.8 TB/year.
+
+### Estimating Row Size
+
+Example `Employee` table:
+
+```
+CREATE TABLE Employee (
+    EmployeeID INT,              -- 4 bytes
+    FirstName NVARCHAR(50),      -- ~40 bytes average
+    LastName NVARCHAR(50),       -- ~40 bytes average
+    HireDate DATE,               -- 3 bytes
+    Salary DECIMAL(10,2)         -- 5 bytes
+);
+```
+
+Estimated row size:
+
+| Column             | Estimated Size |
+| ------------------ | -------------- |
+| EmployeeID         | 4 bytes        |
+| FirstName          | 40 bytes       |
+| LastName           | 40 bytes       |
+| HireDate           | 3 bytes        |
+| Salary             | 5 bytes        |
+| Total              | 92 bytes       |
+| Row overhead       | \~7 bytes      |
+| Estimated row size | \~99 bytes     |
+
+- 1 million rows ≈ 94 MB.
+- Actual storage can vary depending on variable-length values, row overhead, and other storage structures.
+
+## Design Effective Columns
+
+Example of a properly designed `Product` table:
+
+```
+CREATE TABLE Product (
+    ProductID INT PRIMARY KEY IDENTITY(1,1),
+    ProductName NVARCHAR(100) NOT NULL,
+    Category NVARCHAR(50) NOT NULL,
+    Price DECIMAL(10,2) NOT NULL,
+    StockQuantity INT NOT NULL DEFAULT 0,
+    LastRestocked DATETIME2 DEFAULT GETUTCDATE()
+);
+```
+
+### Design Principles Applied
+
+- Appropriate Data Types: INT for IDs, DECIMAL for financial values, and DATETIME2 for timestamps.
+- Right-Sized Columns: Allocate column lengths based on expected data.
+- NOT NULL: Prevents missing values in required columns.
+- DEFAULT: Automatically supplies values when none are provided.
+- IDENTITY(1,1): Automatically generates sequential IDs, starting at 1 and incrementing by 1.
+- Efficient Primary Key: INT uses less storage than UNIQUEIDENTIFIER (4 vs. 16 bytes).
+
+### VARCHAR vs. NVARCHAR Storage Example
+
+For a 30-character string:
+
+- `VARCHAR(100)` ≈ 30 bytes.
+- `NVARCHAR(100)` ≈ 60 bytes.
+- Across 10 million rows, using VARCHAR could save approximately 300 MB.
+
+## Table Design Best Practices
+
+| Practice               | Purpose                                                    |
+| ---------------------- | ---------------------------------------------------------- |
+| Appropriate Data Types | Reduce storage requirements and improve performance        |
+| Estimate Table Size    | Plan storage, indexing, and resource requirements          |
+| Meaningful Constraints | Enforce data quality at database level                     |
+| Plan for Growth        | Accommodate increasing data volumes                        |
+| Strategic Indexing     | Index columns frequently used in WHERE, JOIN, and ORDER BY |
+| Columnstore Indexes    | Optimize large analytical workloads                        |
+| Normalization          | Reduce unnecessary data duplication                        |
+| Row/Page Compression   | Reduce storage requirements for large tables               |
+
+### Rowstore vs. Columnstore
+
+- Rowstore: Stores data by rows; generally suitable for transactional workloads (OLTP).
+- Columnstore: Stores data by columns; generally suitable for large analytical workloads (OLAP).
+
+Key takeaway: Good database performance starts with proper table design. Choosing appropriate data types, estimating storage requirements, defining constraints, and selecting suitable index types early prevents expensive migrations and performance bottlenecks later.
