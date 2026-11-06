@@ -29,8 +29,8 @@ for tool in response:
     print(f"🔧 Tool: {tool.name}")
     print(f"{'=' * 60}")
     print(f"Description : {tool.description}")
-    print(f"Input Schema: {tool.input_schema}")
-    print(f"Output Schema: {tool.output_schema}")
+    print(f"Input Schema: {tool.inputSchema}")
+    print(f"Output Schema: {tool.outputSchema}")
 
 # ———— LangChain Tools with HTTP MCP Servers —————
 import os
@@ -46,3 +46,5 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=os.environ["GEMINI_API_KEY"],
 )
 
+response = llm.invoke("Hello gemini")
+print(response)
