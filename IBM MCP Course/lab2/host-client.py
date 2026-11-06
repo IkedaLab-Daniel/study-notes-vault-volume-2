@@ -39,6 +39,11 @@ from langchain_mcp_adapters.tools import load_mcp_tools
 from langgraph.prebuilt import create_react_agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+
+# !!!
+from server import print_stream_info
+
 
 load_dotenv()
 llm = ChatGoogleGenerativeAI(
@@ -46,5 +51,10 @@ llm = ChatGoogleGenerativeAI(
     google_api_key=os.environ["GEMINI_API_KEY"],
 )
 
-response = llm.invoke("Hello gemini")
-print(response)
+async def main():
+    async with streamable_http_client(f"http://127.0.0.1:{PORT}/mcp") as (read, write, _sid):
+        print_stream_info(read, write, _sid, verbose=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
