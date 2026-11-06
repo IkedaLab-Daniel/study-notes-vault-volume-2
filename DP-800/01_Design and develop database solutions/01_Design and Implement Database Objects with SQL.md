@@ -290,3 +290,104 @@ For a 30-character string:
 - Columnstore: Stores data by columns; generally suitable for large analytical workloads (OLAP).
 
 Key takeaway: Good database performance starts with proper table design. Choosing appropriate data types, estimating storage requirements, defining constraints, and selecting suitable index types early prevents expensive migrations and performance bottlenecks later.
+
+# Optimize with Indexes
+
+- Indexes are data structures that accelerate data retrieval by creating optimized lookup paths to table rows.
+- Without indexes, SQL Server may perform a Full Table Scan, examining every row to find matching records.
+- Indexes work like a book's index: they help locate information without reading every page.
+
+Trade-off:
+
+- Faster `SELECT` queries and data retrieval.
+- Additional storage requirements.
+- Slower `INSERT`, `UPDATE`, and `DELETE` operations because indexes must also be maintained.
+
+Poor indexing, missing indexes, and over-indexing are common causes of database performance problems.
+
+## Rowstore Indexes
+
+Rowstore indexes store data in row format, keeping all columns of a row together. They are ideal for OLTP workloads involving individual record retrieval and frequent modifications.
+
+### Clustered Index
+
+- Determines the physical storage order of table rows based on index key values.
+- Only ONE clustered index per table because rows can only have one physical ordering.
+- Best for:
+  - Range queries.
+  - Sequential or stable keys.
+  - Frequently accessed primary data paths.
+  - Natural ordering, such as identity columns or dates.
+
+### Nonclustered Index
+
+- Maintains a separate index structure from the actual table data.
+- Contains index key values and pointers to corresponding data rows.
+- Multiple nonclustered indexes can exist on a table.
+- Best for:
+  - Frequently searched columns.
+  - JOIN and WHERE predicates.
+  - Alternative sorting patterns.
+  - Covering queries using included columns to avoid additional key lookups.
+
+### Creating Rowstore Indexes
+
+```
+-- Clustered index
+CREATE CLUSTERED INDEX IX_Product_ProductID
+ON Product(ProductID);
+
+-- Nonclustered index with included columns
+CREATE NONCLUSTERED INDEX IX_Product_Category
+ON Product(Category)
+INCLUDE (ProductName, Price);
+```
+
+Key distinction:
+
+| Feature      | Clustered                      | Nonclustered                          |
+| ------------ | ------------------------------ | ------------------------------------- |
+| Storage      | Determines row storage order   | Separate index structure              |
+| Quantity     | One per table                  | Multiple per table                    |
+| Main purpose | Primary data access path       | Alternative lookup paths              |
+| Best for     | Range scans and ordered access | Specific lookups and covering queries |
+
+## Columnstore Indexes
+
+- Store data column-by-column instead of row-by-row.
+- Optimized for analytical workloads (OLAP) that scan millions of rows and perform aggregations such as `SUM()`, `AVG()`, and `COUNT()`.
+- Read only the columns required by a query, reducing unnecessary I/O.
+- Provide high compression and efficient analytical processing.
+
+### Columnstore Architecture
+
+1\. Rowgroups
+
+- A logical group containing up to 1,048,576 rows.
+- Each rowgroup contains separately stored column segments.
+
+2\. Column Segments
+
+- Store individual columns independently within a rowgroup.
+- Compressed separately for efficient storage and retrieval.
+
+3\. Deltastore
+
+- Temporary rowstore structure using a B+ tree index.
+- Receives small batches of inserted rows before columnstore compression.
+
+4\. Tuple-Mover
+
+- Background process that compresses eligible delta rowgroups into columnstore format.
+- Delta rowgroups containing at least 102,400 rows become eligible for compression.
+- Bulk loads of 102,400 or more rows can bypass the deltastore and load directly into columnstore.
+
+### When to Use Columnstore
+
+| Scenario                   | Recommendation | Reason                                    |
+| -------------------------- | -------------- | ----------------------------------------- |
+| Data warehouse fact tables | Use            | Efficient analytics on millions of rows   |
+| Reporting databases        | Use            | Optimized for aggregate queries           |
+| Historical data            | Use            | High compression for rarely modified data |
+
+\| Small tables (
