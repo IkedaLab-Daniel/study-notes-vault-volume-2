@@ -31,3 +31,18 @@ for tool in response:
     print(f"Description : {tool.description}")
     print(f"Input Schema: {tool.input_schema}")
     print(f"Output Schema: {tool.output_schema}")
+
+# ———— LangChain Tools with HTTP MCP Servers —————
+import os
+from dotenv import load_dotenv
+from langchain_mcp_adapters.tools import load_mcp_tools
+from langgraph.prebuilt import create_react_agent
+from langchain_google_genai import ChatGoogleGenerativeAI
+from mcp import ClientSession
+
+load_dotenv()
+llm = ChatGoogleGenerativeAI(
+    model="gemini-3.5-flash-lite",
+    google_api_key=os.environ["GEMINI_API_KEY"],
+)
+
