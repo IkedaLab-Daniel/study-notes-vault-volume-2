@@ -54,6 +54,23 @@ llm = ChatGoogleGenerativeAI(
 async def main():
     async with streamable_http_client(f"http://127.0.0.1:{PORT}/mcp") as (read, write, _sid):
         print_stream_info(read, write, _sid, verbose=True)
+        print("\n\n")
+
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            # ? Load LangChain tool from the LIVE MCP session
+            tools = await load_mcp_tools(session)
+
+            # Build the agent WHILE the session is still open
+            agent = create_react_agent(
+                model=llm,
+                tools=tools,
+            )
+
+            agent_response = await agent.ainvoke({"messages": "Use the add tool to add 2 and 1 and let me know if you used a tool."})
+            print(agent_response['messages'][-1].content)
+    
 
 
 if __name__ == "__main__":
