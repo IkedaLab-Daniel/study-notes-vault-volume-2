@@ -390,4 +390,311 @@ Key distinction:
 | Reporting databases        | Use            | Optimized for aggregate queries           |
 | Historical data            | Use            | High compression for rarely modified data |
 
-\| Small tables (
+# Use specialized table types
+
+## Specialized Table Types in SQL Server
+
+SQL Server provides specialized table types for workloads that standard disk-based tables cannot efficiently handle.
+
+| Table Type | Primary Purpose                                       |
+| ---------- | ----------------------------------------------------- |
+| In-Memory  | High-performance, low-latency data access             |
+| Temporal   | Automatic historical data tracking                    |
+| External   | Query data stored outside the database                |
+| LEDGER     | Cryptographic verification and tamper-evident records |
+| GRAPH      | Model complex relationships between entities          |
+
+## In-Memory Optimized Tables
+
+- Store table data entirely in RAM instead of traditional disk-based storage.
+- Use lock-free, optimistic concurrency to reduce contention and improve performance.
+- Designed for high-throughput workloads requiring millisecond or microsecond response times.
+
+### Common Use Cases
+
+- Session State: Managing millions of concurrent web application sessions.
+- Real-Time Analytics: Financial trading systems requiring extremely low latency.
+- High-Frequency OLTP: Order processing systems handling 10,000+ transactions/second.
+- Caching Layer: Frequently accessed reference data, such as product catalogs and configurations.
+- Staging Tables: ETL processes involving intensive INSERT and UPDATE operations.
+
+### Trade-offs
+
+- Requires sufficient RAM because table data resides in memory.
+- Data size is limited by available RAM.
+- Doesn't support large object types such as `VARCHAR(MAX)`, `NVARCHAR(MAX)`, and `VARBINARY(MAX)`.
+- Transaction logs are still written to disk to ensure durability.
+- Committed transactions can be recovered into memory after a server restart.
+
+### Creating an In-Memory Table
+
+```
+CREATE TABLE dbo.OrderCache (
+    OrderID INT PRIMARY KEY NONCLUSTERED,
+    CustomerID INT,
+    OrderDate DATETIME2,
+    Amount DECIMAL(10,2),
+    INDEX IX_CustomerID NONCLUSTERED (CustomerID)
+) WITH (
+    MEMORY_OPTIMIZED = ON,
+    DURABILITY = SCHEMA_AND_DATA
+);
+```
+
+- `MEMORY_OPTIMIZED = ON`: Enables in-memory optimization.
+- `DURABILITY = SCHEMA_AND_DATA`: Preserves both table schema and data across restarts.
+
+## Temporal Tables
+
+- Automatically maintain historical versions of records.
+- When a row is updated or deleted, SQL Server stores its previous version in an associated history table.
+- Uses timestamps to track when each version was valid.
+- No custom triggers or application-level versioning logic required.
+
+### Common Use Cases
+
+- Compliance & Auditing: Track changes to financial records.
+- Troubleshooting: Investigate historical account balances.
+- Trend Analysis: Analyze product price changes over time.
+- Data Recovery: Retrieve previous values after accidental updates.
+- Slowly Changing Dimensions (SCD Type 2): Maintain historical dimension records in data warehouses.
+
+### Benefits and Trade-offs
+
+- No application code changes required.
+- Automatic history tracking.
+- Supports point-in-time queries.
+- Automatically manages historical versions.
+- Storage requirements can roughly double because historical records are retained.
+
+### Creating a Temporal Table
+
+Temporal tables require:
+
+- Two `DATETIME2` columns representing the start and end of each row's validity.
+- `GENERATED ALWAYS AS ROW START` and `GENERATED ALWAYS AS ROW END`.
+- `PERIOD FOR SYSTEM_TIME` to define the validity period.
+- `SYSTEM_VERSIONING = ON` to enable automatic history tracking.
+
+```
+CREATE TABLE Employee (
+    EmployeeID INT PRIMARY KEY,
+    EmployeeName NVARCHAR(100),
+    Department NVARCHAR(50),
+
+    SysStartTime DATETIME2
+        GENERATED ALWAYS AS ROW START,
+
+    SysEndTime DATETIME2
+        GENERATED ALWAYS AS ROW END,
+
+    PERIOD FOR SYSTEM_TIME (
+        SysStartTime,
+        SysEndTime
+    )
+) WITH (SYSTEM_VERSIONING = ON);
+```
+
+### Query Historical Data
+
+```
+SELECT *
+FROM Employee
+FOR SYSTEM_TIME AS OF '2026-01-01'
+WHERE EmployeeID = 1;
+```
+
+`FOR SYSTEM_TIME AS OF` retrieves the record as it existed at a specific point in time.
+
+SQL Server automatically creates and maintains the associated history table.
+
+## External Tables
+
+- Allow querying data stored outside the database without importing or physically moving it.
+- Implement data virtualization, reducing ETL complexity and duplicate storage.
+- Useful when data is distributed across data lakes, blob storage, and external systems.
+
+### Common Use Cases
+
+- Data Lake Integration: Query Parquet and CSV files in Azure Data Lake Storage.
+- Data Exploration: Analyze raw data before importing it.
+- Cost Optimization: Avoid duplicating externally stored data.
+- Federated Queries: Join database tables with external files.
+- Archival Storage: Access historical data stored in cheaper blob storage.
+
+### Benefits and Trade-offs
+
+- No data movement or storage duplication.
+- Supports querying across distributed sources.
+- Often slower than native tables due to network latency and file parsing.
+- Generally read-only; UPDATE and DELETE are unavailable in most scenarios.
+- Limited indexing and query optimization.
+
+### Creating an External Table
+
+```
+CREATE EXTERNAL TABLE dbo.ExternalSalesData (
+    OrderID INT,
+    CustomerID INT,
+    OrderAmount DECIMAL(10,2),
+    OrderDate DATE
+) WITH (
+    LOCATION = '/raw/sales/',
+    DATA_SOURCE = DataLakeSource,
+    FILE_FORMAT = ParquetFormat
+);
+```
+
+- `LOCATION`: External file or directory location.
+- `DATA_SOURCE`: Defines the external data source.
+- `FILE_FORMAT`: Specifies the external file format.
+
+## LEDGER Tables
+
+- Use cryptographic verification inspired by blockchain technology to create tamper-evident records.
+- Provide independently verifiable proof of data integrity.
+- Designed for regulatory compliance, auditing, and applications requiring trustworthy records.
+
+### Common Use Cases
+
+- Financial transactions and banking.
+- Supply chain tracking and product authenticity.
+- Legal contracts and agreements.
+- Healthcare records and patient consent.
+- Government records, voting, and land registries.
+
+### Types of Ledger Tables
+
+1\. Updatable Ledger Tables
+
+- Allow `INSERT`, `UPDATE`, and `DELETE`.
+- Cryptographically track every modification.
+- Automatically preserve previous versions in a history table.
+- Similar to temporal tables but with additional tamper-evident verification.
+
+2\. Append-Only Ledger Tables
+
+- Only allow `INSERT` operations.
+- Create immutable records.
+- Suitable for records that must never be modified or deleted.
+
+Combining Ledger and Temporal Tables:
+
+A table can use both technologies to provide cryptographic verification and point-in-time historical queries.
+
+### Creating Ledger Tables
+
+```
+-- Updatable ledger table
+CREATE TABLE dbo.FinancialTransaction (
+    TransactionID INT PRIMARY KEY IDENTITY,
+    AccountNumber NVARCHAR(20),
+    Amount DECIMAL(15,2),
+    TransactionType NVARCHAR(20)
+) WITH (LEDGER = ON);
+
+-- Append-only ledger table
+CREATE TABLE dbo.AuditLog (
+    LogID INT PRIMARY KEY IDENTITY,
+    EventDescription NVARCHAR(500),
+    EventTimestamp DATETIME2
+) WITH (
+    LEDGER = ON,
+    APPEND_ONLY = ON
+);
+```
+
+### How Ledger Verification Works
+
+- SQL Server automatically adds hidden columns and supporting database objects.
+- Every modification generates a cryptographic hash linked to previous operations.
+- Creates a tamper-evident cryptographic chain.
+
+Verification tools:
+
+- `sys.database_ledger_transactions`: System view for inspecting ledger transactions.
+- `sp_verify_database_ledger`: Stored procedure for verifying the integrity of the cryptographic chain.
+
+## GRAPH Tables
+
+- Designed for highly connected data involving complex relationships.
+- Uses nodes to represent entities and edges to represent relationships.
+- Simplifies multi-hop relationship queries that would otherwise require numerous JOIN operations.
+
+### Common Use Cases
+
+- Social networks (friends of friends).
+- Product recommendation relationships.
+- Organizational relationships.
+- Complex interconnected data.
+
+### Benefits and Trade-offs
+
+- Intuitive modeling of connected data.
+- Simplifies relationship traversal queries.
+- Supports flexible relationship structures.
+- Can improve multi-hop query performance.
+- Requires learning specialized `MATCH` syntax.
+- Best suited for read-heavy relationship queries.
+
+Avoid GRAPH tables when:
+
+- Simple parent-child relationships can be handled with foreign keys.
+- Data is primarily transactional without complex relationships.
+- Schemas are highly structured and stable.
+
+### Graph Table Structure
+
+1\. Node Tables
+
+- Store entities.
+- Automatically include hidden `$node_id` columns that uniquely identify nodes.
+
+2\. Edge Tables
+
+- Store relationships between nodes.
+- Automatically include hidden columns:
+  - `$edge_id`: Identifies the edge.
+  - `$from_id`: Identifies the source node.
+  - `$to_id`: Identifies the destination node.
+
+### Creating Graph Tables
+
+```
+-- Create node and edge tables
+CREATE TABLE Person AS NODE;
+CREATE TABLE Manages AS EDGE;
+CREATE TABLE Knows AS EDGE;
+```
+
+### Inserting and Querying Relationships
+
+```
+-- Insert nodes
+INSERT INTO Person
+VALUES (1, 'Alice'), (2, 'Bob'), (3, 'Charlie');
+
+-- Insert relationships
+INSERT INTO Manages
+VALUES (1, 2), (2, 3);
+
+-- Traverse relationships
+SELECT Person1.name, Person2.name
+FROM Person AS Person1, Manages, Person AS Person2
+WHERE MATCH (Person1-(Manages)->Person2)
+AND Person1.id = 1;
+```
+
+SQL Server automatically manages the hidden system columns required for graph traversal.
+
+## Specialized Table Types: Quick Comparison
+
+| Table Type | Main Advantage                   | Main Trade-off                            |
+| ---------- | -------------------------------- | ----------------------------------------- |
+| In-Memory  | Extremely fast data access       | Requires RAM                              |
+| Temporal   | Automatic historical tracking    | Increased storage                         |
+| External   | Query data without importing     | Network latency and limited optimization  |
+| LEDGER     | Cryptographic tamper detection   | Restricts modifications depending on type |
+| GRAPH      | Simplifies complex relationships | Requires specialized syntax               |
+
+Key takeaway: Select specialized table types based on workload requirements rather than using standard tables for everything. In-memory tables optimize speed, temporal tables preserve history, external tables enable data virtualization, ledger tables provide tamper evidence, and graph tables simplify complex relationships. These architectural decisions are best made during initial database design because changing them after deployment can be difficult.
