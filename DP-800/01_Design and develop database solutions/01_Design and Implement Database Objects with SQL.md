@@ -892,3 +892,168 @@ ALTER SEQUENCE OrderNumber RESTART WITH 1000;
 - Use `IDENTITY` for simple table-specific auto-incrementing keys.
 - Use `SEQUENCE` when numbering must be shared, reserved before insertion, retrieved in batches, or customized.
 - Remember that sequence values can have gaps, including when transactions roll back.
+
+# Manage JSON columns and indexes
+
+## Understand JSON Columns
+
+- Relational databases work best when every row follows a consistent table structure.
+- However, some records have attributes that vary depending on the item type, data source, or user preferences.
+- JSON columns allow you to combine fixed relational columns with flexible semi-structured data.
+- This avoids creating numerous mostly-empty columns or splitting variable attributes across many tables.
+
+Example: E-commerce product catalog
+
+| Common relational columns               | Variable JSON attributes             |
+| --------------------------------------- | ------------------------------------ |
+| ProductID, ProductName, Price, Category | Shirt: size, color                   |
+|                                         | Laptop: processor speed, screen size |
+|                                         | Book: author, publication details    |
+
+This allows new product types and attributes without changing the table structure.
+
+### When to Use JSON Columns
+
+| Scenario                  | Example                                |
+| ------------------------- | -------------------------------------- |
+| User preferences          | Theme, language, notification settings |
+| API responses             | Nested data from external services     |
+| Audit logs                | Before-and-after record states         |
+| Multi-tenant applications | Custom fields for different customers  |
+| Flexible metadata         | Tags, labels, variable properties      |
+
+## Create and Query JSON Columns
+
+### SQL Server JSON Storage
+
+- SQL Server 2025+: Introduces the native `JSON` data type, which stores documents in a binary format optimized for querying and manipulation.
+  - More efficient reads because documents are already parsed.
+  - More efficient writes because individual values can be modified without rewriting the entire document.
+  - Better storage compression compared to `NVARCHAR(MAX)`.
+- Earlier SQL Server versions: Store JSON documents in `NVARCHAR(MAX)` columns.
+
+### Important JSON Functions
+
+| Function / Method    | Purpose                                                                      |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `JSON_VALUE()`       | Extracts a single scalar value (e.g., string or number)                      |
+| `JSON_QUERY()`       | Returns a JSON object or array                                               |
+| `JSON_MODIFY()`      | Updates a JSON property; works with `JSON` and `NVARCHAR(MAX)`               |
+| `.modify()`          | Native JSON modification method for SQL Server 2025+ (preview in the source) |
+| `JSON_PATH_EXISTS()` | Checks whether a specified JSON path exists                                  |
+
+### Example: Create, Insert, Query, and Update JSON
+
+```
+-- SQL Server 2025+
+CREATE TABLE ConfigurationData (
+    ConfigID INT PRIMARY KEY,
+    ConfigSettings JSON NOT NULL
+);
+
+-- Insert JSON documents
+INSERT INTO ConfigurationData (ConfigID, ConfigSettings)
+VALUES (1, '{"theme":"dark","language":"en","notifications":true}');
+
+INSERT INTO ConfigurationData (ConfigID, ConfigSettings)
+VALUES (2, '{"theme":"light","language":"fr","notifications":false}');
+
+-- Extract scalar values and JSON objects
+SELECT ConfigID,
+       JSON_VALUE(ConfigSettings, '$.theme') AS Theme,
+       JSON_VALUE(ConfigSettings, '$.language') AS Language,
+       JSON_QUERY(ConfigSettings, '$') AS FullConfig
+FROM ConfigurationData;
+
+-- Update a property (SQL Server 2025+ preview)
+UPDATE ConfigurationData
+SET ConfigSettings.modify('$.theme', 'light')
+WHERE ConfigID = 1;
+
+-- Alternative: JSON_MODIFY()
+UPDATE ConfigurationData
+SET ConfigSettings = JSON_MODIFY(
+    CAST(ConfigSettings AS NVARCHAR(MAX)),
+    '$.notifications',
+    CAST(0 AS BIT)
+)
+WHERE ConfigID = 1;
+```
+
+JSON path examples:
+
+- `$.theme` – accesses the `theme` property.
+- `$.dimensions.length` – accesses a nested property.
+- `$` – refers to the entire JSON document.
+
+### Indexing JSON Properties
+
+- JSON properties aren't directly used as index key columns when using the native `JSON` data type.
+- For frequently queried properties, create a computed column that extracts the property using `JSON_VALUE()`, then index that column.
+
+```
+ALTER TABLE ConfigurationData
+ADD ThemeValue AS JSON_VALUE(ConfigSettings, '$.theme');
+
+CREATE INDEX IX_Theme ON ConfigurationData(ThemeValue);
+```
+
+This improves queries that frequently filter or search by the extracted JSON property.
+
+## Combine Relational and JSON Structure
+
+JSON should complement relational tables, not replace them.
+
+| Regular columns                | JSON columns                                               |
+| ------------------------------ | ---------------------------------------------------------- |
+| Predictable, consistent fields | Variable attributes                                        |
+| Native data type validation    | Flexible document structure                                |
+| Simpler SQL queries            | Requires JSON path expressions                             |
+| Direct indexing                | Computed-column indexing for frequently queried properties |
+
+Example: Product metadata
+
+```
+-- SQL Server 2025+
+CREATE TABLE ProductMetadata (
+    ProductID INT PRIMARY KEY,
+    AdditionalAttributes JSON NOT NULL
+        CHECK (JSON_PATH_EXISTS(AdditionalAttributes, '$.weight') = 1),
+    FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
+);
+
+-- Insert flexible attributes
+INSERT INTO ProductMetadata (ProductID, AdditionalAttributes)
+VALUES (
+    1,
+    '{"dimensions":{"length":10,"width":5,"height":8},"weight":2.5,"color":"blue"}'
+);
+
+-- Query nested properties
+SELECT ProductID,
+       JSON_VALUE(AdditionalAttributes, '$.weight') AS Weight,
+       JSON_VALUE(AdditionalAttributes, '$.dimensions.length') AS Length
+FROM ProductMetadata;
+```
+
+Important concepts:
+
+- `FOREIGN KEY` maintains the relationship with the main `Product` table.
+- `CHECK` with `JSON_PATH_EXISTS()` ensures required JSON properties exist.
+- Nested properties can be accessed using dot notation in JSON paths.
+
+## JSON Design Principles
+
+1. Use JSON for semi-structured data: Best for attributes that vary between records, not consistent schemas.
+2. Index frequently queried paths: Use computed columns and indexes for commonly accessed JSON properties.
+3. Validate required properties: Use `CHECK` constraints with `JSON_PATH_EXISTS()` to ensure required fields are present.
+4. Balance flexibility with structure: Keep predictable data in regular columns and variable attributes in JSON.
+
+## Key Takeaways
+
+- JSON columns provide schema flexibility without requiring a separate NoSQL database.
+- SQL Server 2025+ introduces the native binary-optimized `JSON` data type; earlier versions use `NVARCHAR(MAX)`.
+- Use `JSON_VALUE()` for scalar values and `JSON_QUERY()` for objects or arrays.
+- Use `JSON_MODIFY()` or the SQL Server 2025+ `.modify()` method to update JSON properties.
+- Frequently queried JSON properties can be indexed through computed columns.
+- Keep structured, predictable data relational; use JSON only for the parts that need flexibility.
