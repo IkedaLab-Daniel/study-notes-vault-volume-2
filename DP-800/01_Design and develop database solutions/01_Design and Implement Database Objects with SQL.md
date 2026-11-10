@@ -1057,3 +1057,274 @@ Important concepts:
 - Use `JSON_MODIFY()` or the SQL Server 2025+ `.modify()` method to update JSON properties.
 - Frequently queried JSON properties can be indexed through computed columns.
 - Keep structured, predictable data relational; use JSON only for the parts that need flexibility.
+
+# Partition table for scale
+
+## Understand Table Partitioning
+
+- Table partitioning divides a large table into smaller, manageable physical segments called partitions while keeping it as one logical table.
+- Applications continue accessing the table normally; the database engine manages its partitions internally.
+- Partitions can be independently queried, maintained, archived, and stored.
+
+Important design consideration
+
+Partitioning decisions are difficult to reverse. A poorly selected partition key can make performance worse than an unpartitioned table. Repartitioning a multi-terabyte table may require rebuilding it and cause significant downtime.
+
+### Three Core Partitioning Components
+
+| Component           | Purpose                                             |
+| ------------------- | --------------------------------------------------- |
+| Partition Function  | Defines how rows are divided using boundary values. |
+| Partition Scheme    | Maps partitions to filegroups.                      |
+| Partitioning Column | Determines which partition receives each row.       |
+
+### Performance Benefits
+
+- Partition elimination: Queries filtering by the partition key access only relevant partitions instead of scanning the entire table.
+- Parallel processing: Multiple partitions can be processed simultaneously across CPU cores.
+- Faster statistics: Statistics can be calculated per partition rather than across the entire table.
+- Index seeks: Smaller partitions can result in shallower B-trees.
+
+### Operational Benefits
+
+- Granular maintenance: Rebuild indexes on recent partitions while older partitions remain online.
+- Fast archival: Switch old partitions into archive tables using metadata operations instead of expensive `DELETE` operations.
+- Improved availability: Maintain partitions independently.
+- Tiered storage: Move older partitions to cheaper, slower storage.
+
+### When to Use Partitioning
+
+| Scenario                                         | Recommended? | Reason                               |
+| ------------------------------------------------ | ------------ | ------------------------------------ |
+| 80%+ of queries filter by a specific column      | Yes          | Enables partition elimination        |
+| Regular monthly or quarterly archival            | Yes          | Fast partition switching             |
+| Rebuilding indexes only on recent data           | Yes          | Independent partition maintenance    |
+| Multi-terabyte tables requiring tiered storage   | Yes          | Move older data to cheaper storage   |
+| Most queries scan the entire table               | No           | All partitions may need scanning     |
+| Frequent single-row lookups or small range scans | No           | Adds unnecessary overhead            |
+| No column aligns with query patterns             | No           | Difficult to select an effective key |
+
+## Create Partitioning Components
+
+### Example: Partition Orders by Date
+
+```
+-- 1. Create partition function
+CREATE PARTITION FUNCTION PF_OrderDate (DATETIME2)
+    AS RANGE RIGHT FOR VALUES
+    ('2024-01-01', '2024-04-01', '2024-07-01', '2024-10-01');
+
+-- 2. Create partition scheme
+CREATE PARTITION SCHEME PS_OrderDate
+    AS PARTITION PF_OrderDate ALL TO ([PRIMARY]);
+
+-- 3. Create partitioned table
+CREATE TABLE Orders (
+    OrderID INT NOT NULL,
+    OrderDate DATETIME2 NOT NULL,
+    CustomerID INT,
+    Amount DECIMAL(10,2),
+    CONSTRAINT PK_Orders PRIMARY KEY (OrderID, OrderDate)
+) ON PS_OrderDate(OrderDate);
+```
+
+Explanation:
+
+1. `CREATE PARTITION FUNCTION` defines the partition boundaries.
+2. `RANGE RIGHT` determines how boundary values are assigned.
+3. `CREATE PARTITION SCHEME` maps partitions to filegroups.
+4. `ON PS_OrderDate(OrderDate)` places the table on the partition scheme using `OrderDate`.
+5. The partition column is included in the primary key to support clustered index alignment.
+
+The four boundaries create five partitions:
+
+- Before January 1, 2024
+- January 1 – March 31
+- April 1 – June 30
+- July 1 – September 30
+- October 1 onward
+
+The example uses one `PRIMARY` filegroup. Multiple filegroups are useful when implementing tiered storage or independent backups.
+
+### RANGE LEFT vs. RANGE RIGHT
+
+- `RANGE RIGHT`: Boundary values belong to the partition on the right.
+- `RANGE LEFT`: Boundary values belong to the partition on the left.
+
+Example:
+
+```
+-- RANGE RIGHT creates five partitions
+CREATE PARTITION FUNCTION PF_InvoiceNumber (INT)
+    AS RANGE RIGHT FOR VALUES
+    (100000, 200000, 300000, 400000);
+```
+
+Resulting ranges:
+
+| Partition | Values           |
+| --------- | ---------------- |
+| 1         | Less than 100000 |
+| 2         | 100000–199999    |
+| 3         | 200000–299999    |
+| 4         | 300000–399999    |
+| 5         | 400000 and above |
+
+## Choose Partitioning Strategies
+
+The partition key is the most important design decision.
+
+A good partition key should:
+
+- Match query patterns: At least 80% of queries should filter by this column.
+- Have balanced distribution: Avoid having one partition contain 90% of the data.
+- Align with maintenance: Match archival and purge schedules.
+- Remain stable: Prefer columns whose values don't change after insertion.
+
+### Range Partitioning
+
+Divides data into value ranges, commonly based on dates.
+
+Common use cases:
+
+- Time-series data (orders, logs, transactions).
+- Sequential data (invoice numbers, order IDs).
+- Numeric ranges (salary bands, price tiers).
+
+Common partition intervals:
+
+| Interval  | When to Use                                    |
+| --------- | ---------------------------------------------- |
+| Daily     | High-volume systems with short retention       |
+| Weekly    | Medium volume, 6–12 month retention            |
+| Monthly   | Most common; balances partition count and size |
+| Quarterly | Lower volume with multi-year retention         |
+| Yearly    | Long-term historical archival                  |
+
+Example: Monthly order partitioning allows current-month queries to access one partition, quarterly reports to access three, and year-end analysis to access twelve.
+
+### Categorical Partitioning
+
+- Partition data using categorical or string values such as regions.
+- SQL Server places values according to their sort order.
+- Useful for geographic distribution, multitenant systems, and departmental data when queries frequently filter by category.
+
+```
+CREATE PARTITION FUNCTION PF_Region (NVARCHAR(50))
+    AS RANGE LEFT FOR VALUES ('East', 'North', 'South', 'West');
+
+CREATE PARTITION SCHEME PS_Region
+    AS PARTITION PF_Region ALL TO ([PRIMARY]);
+
+CREATE TABLE RegionalData (
+    DataID INT NOT NULL,
+    Region NVARCHAR(50) NOT NULL,
+    Value DECIMAL(10,2),
+    CONSTRAINT PK_RegionalData PRIMARY KEY (DataID, Region)
+) ON PS_Region(Region);
+```
+
+## Implement Index Partitioning
+
+When partitioning a table, indexes can be aligned or nonaligned.
+
+### Aligned vs. Nonaligned Indexes
+
+| Feature                           | Aligned Index                          | Nonaligned Index                        |
+| --------------------------------- | -------------------------------------- | --------------------------------------- |
+| Partitioning                      | Same partition function as table       | Different partitioning or unpartitioned |
+| Partition switching               | Supported                              | Not supported                           |
+| Independent partition maintenance | Supported                              | Limited                                 |
+| Partition elimination             | Better alignment with table partitions | Depends on index design                 |
+| More than 1,000 partitions        | Supported                              | Not supported                           |
+
+Aligned indexes:
+
+- Each index partition corresponds to a table partition.
+- Simplify maintenance and enable fast partition switching.
+- Recommended when archiving old data or rebuilding specific partitions.
+
+Nonaligned indexes:
+
+- Use a different partitioning scheme or no partitioning.
+- Cannot participate in partition switching.
+
+By default, nonclustered indexes on partitioned tables inherit the table's partition scheme.
+
+### Create Partitioned Indexes
+
+```
+-- Partitioned nonclustered index
+CREATE NONCLUSTERED INDEX IX_Orders_Customer
+    ON Orders(CustomerID)
+    ON PS_OrderDate(OrderDate);
+
+-- Partitioned columnstore index
+CREATE NONCLUSTERED COLUMNSTORE INDEX IX_SalesData_CS
+    ON SalesData(Revenue, Region)
+    ON PS_SalesDate(SaleDate);
+```
+
+## Manage Partition Operations
+
+Partition management involves monitoring partitions, adding new boundaries, and removing or merging old boundaries.
+
+### Query Partition Information
+
+Use `$PARTITION` to determine which partition contains a particular value.
+
+```
+SELECT
+    $PARTITION.PF_OrderDate(OrderDate) AS PartitionNumber,
+    MIN(OrderDate) AS MinDate,
+    MAX(OrderDate) AS MaxDate,
+    COUNT(*) AS RowCount
+FROM Orders
+GROUP BY $PARTITION.PF_OrderDate(OrderDate)
+ORDER BY PartitionNumber;
+```
+
+This provides each partition's number, date range, and row count.
+
+### Add a New Partition Boundary
+
+Use `ALTER PARTITION FUNCTION ... SPLIT RANGE` to divide an existing partition into two.
+
+```
+ALTER PARTITION FUNCTION PF_OrderDate()
+    SPLIT RANGE ('2024-11-01');
+```
+
+This introduces November 1, 2024, as a new boundary, separating October data from November–December data.
+
+### Merge Partitions
+
+Use `MERGE RANGE` to remove an existing boundary and combine adjacent partitions.
+
+```
+ALTER PARTITION FUNCTION PF_OrderDate()
+    MERGE RANGE ('2023-12-31');
+```
+
+This is useful when consolidating older partitions during archival or partition maintenance.
+
+## Partitioning Best Practices
+
+1. Align indexes with table partitions: Use the same partition scheme to support partition switching and independent maintenance.
+2. Monitor data distribution: Regularly inspect partition statistics and verify that partition elimination is working.
+3. Automate partition management: Schedule jobs to add new partitions before boundaries are reached and archive old data.
+4. Avoid over-partitioning: Target millions of rows per partition rather than thousands. Too many partitions introduce overhead.
+5. Include the partition key in the primary key: Required for clustered index alignment on the partition scheme.
+
+## Key Takeaways
+
+- Partitioning divides large tables into independently manageable physical segments while preserving one logical table.
+- Its main benefits are partition elimination, faster maintenance, efficient archival, and tiered storage.
+- The three core components are `PARTITION FUNCTION`, `PARTITION SCHEME`, and the partitioning column.
+- Choose a partition key based on query patterns, balanced data distribution, maintenance requirements, and stability.
+- `RANGE RIGHT` and `RANGE LEFT` determine how boundary values are assigned.
+- Aligned indexes are generally preferred because they support partition switching and independent maintenance.
+- Use `$PARTITION` to inspect partition assignments, `SPLIT RANGE` to add boundaries, and `MERGE RANGE` to remove boundaries.
+- Avoid partitioning small tables or tables without a clear partition key.
+
+Core principle: Partitioning is primarily a large-table performance and management strategy. Choose the partition key and index alignment carefully before implementation because changing them later can be expensive.
