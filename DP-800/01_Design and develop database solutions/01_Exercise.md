@@ -179,3 +179,19 @@ Partitioning divides large tables into smaller segments for faster queries and e
      ('2025-06-10', 'Bob Johnson', 449.95, 'Processing');
  GO
 ```
+
+2. Query by partition. Copy and paste the following T-SQL code into a new query window. Select Execute to execute this query.
+
+```sql
+ USE EcommerceDB;
+ GO
+
+ -- Query by partition
+ SELECT 
+     $PARTITION.PF_OrderDate(OrderDate) AS PartitionNumber,
+     COUNT(*) AS OrdersInPartition,
+     MIN(OrderDate) AS MinDate,
+     MAX(OrderDate) AS MaxDate
+ FROM [Order]
+ GROUP BY $PARTITION.PF_OrderDate(OrderDate);
+```
