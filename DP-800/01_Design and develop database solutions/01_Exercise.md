@@ -243,3 +243,19 @@ Sequences generate unique numbers independently of any table. This task uses a s
 
  SELECT * FROM OrderDetail;\
 ```
+
+# Verify database objects
+Run verification queries to ensure all database objects were created correctly.
+
+1. Select New Query. Copy and paste the following T-SQL code into the query window. Select Execute to execute this query.
+
+```sql
+ USE EcommerceDB;
+ GO
+
+ -- Verify constraints work
+ -- This should fail: negative price
+ INSERT INTO Product (ProductName, CategoryID, SupplierID, BasePrice, StockQuantity)
+ VALUES ('Invalid', 1, 1, -50, 10);
+```
+
