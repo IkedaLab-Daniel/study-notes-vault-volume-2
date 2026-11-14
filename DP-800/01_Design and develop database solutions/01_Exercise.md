@@ -235,3 +235,11 @@ Sequences generate unique numbers independently of any table. This task uses a s
  GO
 ```
 
+2. Verify the data. Copy and paste the following T-SQL code into a new query window. Select Execute to execute this query.
+
+```sql
+ USE EcommerceDB;
+ GO
+
+ SELECT * FROM OrderDetail;\
+```
