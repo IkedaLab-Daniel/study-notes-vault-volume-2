@@ -259,3 +259,25 @@ Run verification queries to ensure all database objects were created correctly.
  VALUES ('Invalid', 1, 1, -50, 10);
 ```
 
+2. Verify the JSON and partitioning queries. Copy and paste the following T-SQL code into a new query window. Select Execute to execute this query.
+
+```sql
+ USE EcommerceDB;
+ GO
+
+ -- Verify JSON queries work
+ SELECT ProductName, JSON_VALUE(Metadata, '$.color') AS Color
+ FROM Product
+ WHERE Metadata IS NOT NULL;
+
+ -- Verify partitioning
+ SELECT $PARTITION.PF_OrderDate(OrderDate) AS Partition, COUNT(*) AS RecordCount
+ FROM [Order]
+ GROUP BY $PARTITION.PF_OrderDate(OrderDate);
+
+ -- Verify temporal table
+ SELECT ProductID, CurrentPrice, SysStartTime, SysEndTime
+ FROM ProductPrice FOR SYSTEM_TIME ALL
+ ORDER BY ProductID, SysStartTime;
+```
+
