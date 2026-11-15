@@ -726,3 +726,230 @@ Here, the function receives constant date parameters rather than values from eac
 - **Stored procedure:** Operations that modify data or require more procedural control.
 
 **Key takeaway:** Table-valued functions encapsulate reusable queries that return entire result sets. Inline TVFs are generally preferable for performance and simpler queries, while multi-statement TVFs provide flexibility for more complex processing.
+
+# Create triggers
+
+## **Triggers in SQL Server**
+
+A **trigger** is a special stored procedure that executes automatically when a specific database event occurs.
+
+Unlike regular stored procedures, triggers don't need to be explicitly called. They respond to data modifications or schema changes to enforce business rules, maintain data integrity, and automate operations.
+
+### **1. Types of triggers**
+
+SQL Server supports two main categories:
+
+| Type         | Triggering events            | Purpose                                   |
+| ------------ | ---------------------------- | ----------------------------------------- |
+| DML triggers | `INSERT`, `UPDATE`, `DELETE` | Respond to changes in table or view data. |
+| DDL triggers | `CREATE`, `ALTER`, `DROP`    | Respond to database schema changes.       |
+
+### **2. DML trigger types**
+
+DML triggers can be defined as either `AFTER` or `INSTEAD OF`.
+
+**A. AFTER trigger**
+
+Executes after the original data modification statement completes.
+
+Common uses:
+
+- Update related tables.
+- Validate changes.
+- Record modifications in audit logs.
+
+```
+CREATE TRIGGER tr_UpdateInventory
+ON Sales.OrderDetails
+AFTER INSERT
+AS
+BEGIN
+    UPDATE Inventory.Products
+    SET QuantityInStock = QuantityInStock - i.Quantity
+    FROM Inventory.Products p
+    INNER JOIN inserted i
+        ON p.ProductID = i.ProductID;
+END;
+```
+
+**B. INSTEAD OF trigger**
+
+Replaces the original `INSERT`, `UPDATE`, or `DELETE` operation. The trigger executes instead of the requested modification.
+
+Common uses:
+
+- Enable modifications through views that normally wouldn't support them directly.
+- Implement complex data modification logic.
+
+```
+CREATE TRIGGER tr_UpdateOrderView
+ON Sales.OrderSummaryView
+INSTEAD OF UPDATE
+AS
+BEGIN
+    UPDATE Sales.Orders
+    SET OrderStatus = i.OrderStatus,
+        ModifiedDate = GETDATE()
+    FROM Sales.Orders o
+    INNER JOIN inserted i
+        ON o.OrderID = i.OrderID;
+END;
+```
+
+### **3. Understand&#x20;**`inserted`**&#x20;and&#x20;**`deleted`**&#x20;pseudo-tables**
+
+DML triggers have access to two special temporary pseudo-tables containing copies of affected rows.
+
+| Operation | `inserted` | `deleted`    |
+| --------- | ---------- | ------------ |
+| `INSERT`  | New rows   | Empty        |
+| `UPDATE`  | New values | Old values   |
+| `DELETE`  | Empty      | Deleted rows |
+
+These tables let triggers compare old and new values or identify affected records.
+
+**Example: Track product price changes**
+
+```
+CREATE TRIGGER tr_LogPriceChanges
+ON Products.Catalog
+AFTER UPDATE
+AS
+BEGIN
+    IF UPDATE(Price)
+    BEGIN
+        INSERT INTO Audit.PriceHistory
+            (ProductID, OldPrice, NewPrice, ChangeDate)
+        SELECT
+            d.ProductID,
+            d.Price,
+            i.Price,
+            GETDATE()
+        FROM deleted d
+        INNER JOIN inserted i
+            ON d.ProductID = i.ProductID
+        WHERE d.Price <> i.Price;
+    END;
+END;
+```
+
+- `UPDATE(Price)` checks whether the `Price` column was targeted by an `UPDATE` statement.
+- `deleted` contains the old price.
+- `inserted` contains the new price.
+- `WHERE d.Price <> i.Price` filters out unchanged prices.
+
+### **4. Handle multiple triggering events**
+
+A single trigger can respond to multiple operations.
+
+```
+CREATE TRIGGER tr_AuditEmployeeChanges
+ON HR.Employees
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+    DECLARE @Operation NVARCHAR(10);
+
+    IF EXISTS (SELECT * FROM inserted)
+       AND NOT EXISTS (SELECT * FROM deleted)
+        SET @Operation = 'INSERT';
+
+    ELSE IF EXISTS (SELECT * FROM inserted)
+        AND EXISTS (SELECT * FROM deleted)
+        SET @Operation = 'UPDATE';
+
+    ELSE
+        SET @Operation = 'DELETE';
+
+    INSERT INTO Audit.EmployeeLog
+        (EmployeeID, Operation, ChangeDate)
+    SELECT
+        COALESCE(i.EmployeeID, d.EmployeeID),
+        @Operation,
+        GETDATE()
+    FROM inserted i
+    FULL OUTER JOIN deleted d
+        ON i.EmployeeID = d.EmployeeID;
+END;
+```
+
+**Important:**
+
+- `EXISTS` checks whether rows are present in a pseudo-table.
+- `COALESCE()` returns the first non-NULL value.
+- `FULL OUTER JOIN` preserves matching and unmatched rows from both pseudo-tables.
+- `UPDATE()` helps identify columns targeted by an update operation.
+
+### **5. Trigger best practices**
+
+| Practice                    | Explanation                                                                                |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| Keep logic minimal          | Triggers execute automatically and can affect transaction performance.                     |
+| Use asynchronous processing | Queue lengthy operations for a separate job instead of performing them inside the trigger. |
+| Avoid recursion             | Prevent trigger modifications from repeatedly activating the same trigger.                 |
+| Handle errors               | Properly manage errors to maintain data integrity.                                         |
+| Document triggers           | Explain their purpose because they execute invisibly during normal operations.             |
+
+**A. Use a processing queue**
+
+Instead of performing expensive processing inside a trigger, record qualifying events for later processing.
+
+```
+CREATE TRIGGER tr_QueueLargeOrders
+ON Sales.Orders
+AFTER INSERT
+AS
+BEGIN
+    INSERT INTO Processing.OrderQueue
+        (OrderID, TotalAmount, QueuedDate)
+    SELECT
+        OrderID,
+        TotalAmount,
+        GETDATE()
+    FROM inserted
+    WHERE TotalAmount > 10000;
+END;
+```
+
+**B. Prevent recursive triggers**
+
+A trigger that modifies the same table can potentially cause another trigger execution.
+
+- Configure the database's `RECURSIVE_TRIGGERS` option appropriately.
+- Design trigger logic to prevent endless execution loops.
+
+**C. Handle errors with&#x20;**`THROW`
+
+```
+CREATE TRIGGER tr_ValidateOrderDate
+ON Sales.Orders
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    IF EXISTS (
+        SELECT *
+        FROM inserted
+        WHERE OrderDate > GETDATE()
+    )
+    BEGIN
+        THROW 50001, 'Order date cannot be in the future', 1;
+    END;
+END;
+```
+
+If an unhandled error occurs inside a trigger, SQL Server rolls back both the trigger and the original statement.
+
+### **6. Key concepts to remember**
+
+| Keyword / Object     | Purpose                                                       |
+| -------------------- | ------------------------------------------------------------- |
+| `CREATE TRIGGER`     | Creates a trigger.                                            |
+| `AFTER`              | Executes after the triggering statement.                      |
+| `INSTEAD OF`         | Executes instead of the original modification.                |
+| `inserted`           | Contains newly inserted or updated values.                    |
+| `deleted`            | Contains deleted or previous values.                          |
+| `UPDATE()`           | Checks whether a particular column was targeted by an update. |
+| `RECURSIVE_TRIGGERS` | Controls recursive trigger behavior.                          |
+| `THROW`              | Raises an exception.                                          |
+
+**Key takeaway:** Triggers automate database operations in response to DML or DDL events. They're useful for auditing, validation, and maintaining related data, but should remain lightweight because they execute automatically as part of database operations.
