@@ -343,3 +343,200 @@ CREATE PROCEDURE dbo.sp_GetCustomerOrders;
 - `@@TRANCOUNT` checks active transactions.
 
 **Key takeaway:** Stored procedures centralize database operations and business logic, support input/output parameters, provide error handling, and can improve repeated query execution through execution plan caching.
+
+# Create scalar functions
+
+## **Scalar Functions in SQL Server**
+
+A **scalar function** is a user-defined function that accepts zero or more parameters and returns exactly **one value** of a specified data type.
+
+Unlike stored procedures, scalar functions can be embedded directly into SQL expressions, such as `SELECT`, `WHERE`, and other T-SQL statements.
+
+### **1. Purpose and characteristics**
+
+- **Code reusability:** Encapsulate calculations and transformations in one place.
+- **Consistency:** Apply the same business rules across multiple queries.
+- **Modularity:** Separate reusable logic from application code and SQL queries.
+- **Single-value return:** Always returns one value with an explicitly defined data type.
+- **Parameters:** Can accept zero or more input parameters.
+
+### **2. Create a scalar function**
+
+Use `CREATE FUNCTION` with parameters, a `RETURNS` clause, and a function body.
+
+**Basic syntax:**
+
+```
+CREATE FUNCTION schema_name.function_name
+(
+    @parameter1 datatype,
+    @parameter2 datatype
+)
+RETURNS return_datatype
+AS
+BEGIN
+    -- Function logic
+    RETURN @result;
+END;
+```
+
+**Example: Calculate sales tax**
+
+```
+CREATE FUNCTION dbo.CalculateSalesTax
+(
+    @Amount DECIMAL(10,2),
+    @TaxRate DECIMAL(5,4)
+)
+RETURNS DECIMAL(10,2)
+AS
+BEGIN
+    DECLARE @TaxAmount DECIMAL(10,2);
+
+    SET @TaxAmount = @Amount * @TaxRate;
+
+    RETURN @TaxAmount;
+END;
+```
+
+- `RETURNS` specifies the data type of the returned value.
+- `RETURN` sends the calculated result back to the caller.
+- `DECLARE` creates a local variable inside the function.
+
+### **3. Use scalar functions in queries**
+
+Scalar functions can be called directly inside SQL statements.
+
+**Example: Calculate employee tenure**
+
+```
+CREATE FUNCTION dbo.GetEmployeeTenure
+(
+    @HireDate DATE
+)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @Tenure INT;
+
+    SET @Tenure = DATEDIFF(YEAR, @HireDate, GETDATE());
+
+    RETURN @Tenure;
+END;
+```
+
+Use the function in a query:
+
+```
+SELECT
+    EmployeeName,
+    HireDate,
+    dbo.GetEmployeeTenure(HireDate) AS YearsOfService
+FROM Employees
+WHERE dbo.GetEmployeeTenure(HireDate) >= 5;
+```
+
+**Important: Deterministic vs. non-deterministic functions**
+
+| Type              | Description                                                   |
+| ----------------- | ------------------------------------------------------------- |
+| Deterministic     | Returns the same result when given the same input parameters. |
+| Non-deterministic | May return different results even with the same inputs.       |
+
+- `GETDATE()` makes `GetEmployeeTenure` non-deterministic because its result depends on the current date.
+- Non-deterministic functions cannot be used in indexed views or indexes on computed columns.
+- To support determinism, pass the current date as a parameter instead of calling `GETDATE()` inside the function.
+
+### **4. Scalar function best practices**
+
+| Practice                       | Explanation                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------ |
+| Prefer deterministic functions | Helps support query optimizations and indexing scenarios.                            |
+| Avoid side effects             | Functions shouldn't modify database state or depend on external resources.           |
+| Watch performance              | Scalar functions may execute once per row when used in queries against large tables. |
+| Keep logic simple              | Straightforward calculations and transformations are easier to maintain.             |
+
+**Performance consideration:**
+
+Using scalar functions in `SELECT` or `WHERE` clauses on large tables can significantly affect performance because SQL Server may execute the function for every row.
+
+For these scenarios, consider **inline table-valued functions** as an alternative.
+
+**Example: Format a phone number**
+
+```
+CREATE FUNCTION dbo.FormatPhoneNumber
+(
+    @PhoneNumber VARCHAR(10)
+)
+RETURNS VARCHAR(14)
+AS
+BEGIN
+    DECLARE @FormattedNumber VARCHAR(14);
+
+    IF LEN(@PhoneNumber) = 10
+        SET @FormattedNumber =
+            '(' + SUBSTRING(@PhoneNumber, 1, 3) + ') ' +
+            SUBSTRING(@PhoneNumber, 4, 3) + '-' +
+            SUBSTRING(@PhoneNumber, 7, 4);
+    ELSE
+        SET @FormattedNumber = @PhoneNumber;
+
+    RETURN @FormattedNumber;
+END;
+```
+
+This function:
+
+- Formats valid 10-digit phone numbers.
+- Returns the original input if it doesn't match the expected length.
+- Is deterministic and has no side effects.
+
+### **5. Modify and remove scalar functions**
+
+**Modify using&#x20;**`ALTER FUNCTION`
+
+Changes the function definition without dropping and recreating it, preserving permissions and dependencies.
+
+```
+ALTER FUNCTION dbo.CalculateSalesTax
+(
+    @Amount DECIMAL(10,2),
+    @TaxRate DECIMAL(5,4)
+)
+RETURNS DECIMAL(10,2)
+AS
+BEGIN
+    DECLARE @TaxAmount DECIMAL(10,2);
+
+    SET @TaxAmount = ROUND(@Amount * @TaxRate, 2);
+
+    RETURN @TaxAmount;
+END;
+```
+
+**Remove using&#x20;**`DROP FUNCTION`
+
+```
+DROP FUNCTION IF EXISTS dbo.CalculateSalesTax;
+```
+
+- `IF EXISTS` prevents errors if the function doesn't exist.
+- Before dropping a function, check whether other database objects depend on it.
+- Use `sys.sql_expression_dependencies` to inspect dependencies.
+
+### **6. Key concepts to remember**
+
+| Statement / Function              | Purpose                                            |
+| --------------------------------- | -------------------------------------------------- |
+| `CREATE FUNCTION`                 | Creates a user-defined function.                   |
+| `RETURNS`                         | Defines the return data type.                      |
+| `RETURN`                          | Returns the function's single value.               |
+| `ALTER FUNCTION`                  | Modifies an existing function.                     |
+| `DROP FUNCTION`                   | Removes a function.                                |
+| `DATEDIFF()`                      | Calculates the difference between dates.           |
+| `GETDATE()`                       | Returns the current database system date and time. |
+| `ROUND()`                         | Rounds a numeric value.                            |
+| `sys.sql_expression_dependencies` | Helps identify database object dependencies.       |
+
+**Key takeaway:** Scalar functions encapsulate reusable calculations and transformations that return one value. They're useful for consistent business logic, but be mindful of non-deterministic behavior and per-row performance overhead on large datasets.
