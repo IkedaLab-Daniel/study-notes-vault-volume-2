@@ -540,3 +540,189 @@ DROP FUNCTION IF EXISTS dbo.CalculateSalesTax;
 | `sys.sql_expression_dependencies` | Helps identify database object dependencies.       |
 
 **Key takeaway:** Scalar functions encapsulate reusable calculations and transformations that return one value. They're useful for consistent business logic, but be mindful of non-deterministic behavior and per-row performance overhead on large datasets.
+
+# Create table-valued functions
+
+## **Table-Valued Functions in SQL Server**
+
+A **table-valued function (TVF)** is a user-defined function that accepts parameters and returns a **table (result set)** instead of a single value.
+
+Unlike stored procedures, TVFs can be used directly in `SELECT` statements, `JOIN` clauses, and other queries, making their results usable as data sources.
+
+### **1. Types of table-valued functions**
+
+SQL Server provides two types:
+
+| Feature          | Inline TVF                   | Multi-statement TVF              |
+| ---------------- | ---------------------------- | -------------------------------- |
+| Query structure  | Single `SELECT` statement    | Multiple statements              |
+| Table definition | Inferred from `SELECT`       | Explicitly declared              |
+| Return syntax    | `RETURNS TABLE`              | `RETURNS @TableName TABLE (...)` |
+| Logic            | Simple parameterized queries | Complex or multi-step processing |
+| Performance      | Generally better             | Potential performance trade-off  |
+
+**Inline TVF**
+
+- Contains one `SELECT` statement.
+- SQL Server automatically determines the returned table structure.
+- Optimizer treats it similarly to a parameterized view.
+- Generally preferred for simple queries with parameters.
+
+**Multi-statement TVF**
+
+- Uses a `BEGIN...END` block.
+- Explicitly declares the returned table's columns and data types.
+- Allows multiple operations, calculations, and conditional logic.
+- Offers more flexibility but can have performance disadvantages.
+
+### **2. Create an inline TVF**
+
+Use `RETURNS TABLE` followed by a single `RETURN (SELECT ...)`.
+
+```
+CREATE FUNCTION dbo.GetCustomerOrders
+(
+    @CustomerID INT
+)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT
+        OrderID,
+        OrderDate,
+        TotalAmount,
+        Status
+    FROM Sales.Orders
+    WHERE CustomerID = @CustomerID
+);
+```
+
+Call it like a table:
+
+```
+SELECT OrderID, OrderDate, TotalAmount
+FROM dbo.GetCustomerOrders(1001)
+WHERE OrderDate >= '2024-01-01';
+```
+
+You can further filter, join, or aggregate the returned results.
+
+### **3. Create a multi-statement TVF**
+
+Use `RETURNS @TableName TABLE (...)` to explicitly define the returned table structure.
+
+```
+CREATE FUNCTION dbo.GetProductSalesSummary
+(
+    @StartDate DATE,
+    @EndDate DATE
+)
+RETURNS @SalesSummary TABLE
+(
+    ProductID INT,
+    ProductName NVARCHAR(100),
+    TotalQuantity INT,
+    TotalRevenue DECIMAL(18,2),
+    AveragePrice DECIMAL(18,2)
+)
+AS
+BEGIN
+    INSERT INTO @SalesSummary
+    SELECT
+        p.ProductID,
+        p.ProductName,
+        SUM(od.Quantity),
+        SUM(od.Quantity * od.UnitPrice),
+        AVG(od.UnitPrice)
+    FROM Production.Products p
+    INNER JOIN Sales.OrderDetails od
+        ON p.ProductID = od.ProductID
+    INNER JOIN Sales.Orders o
+        ON od.OrderID = o.OrderID
+    WHERE o.OrderDate BETWEEN @StartDate AND @EndDate
+    GROUP BY p.ProductID, p.ProductName;
+
+    RETURN;
+END;
+```
+
+**How it works:**
+
+1. `RETURNS @SalesSummary TABLE` declares the table variable and its structure.
+2. `INSERT INTO @SalesSummary` populates the returned table.
+3. `RETURN` sends the completed result set back to the caller.
+
+### **4. Use TVFs in queries**
+
+TVFs can be combined with other tables using `APPLY` or `JOIN`.
+
+**A. CROSS APPLY**
+
+Executes the function using values from each row of the left-side table.
+
+```
+SELECT
+    c.CustomerName,
+    o.OrderID,
+    o.TotalAmount
+FROM Customers c
+CROSS APPLY dbo.GetCustomerOrders(c.CustomerID) o
+WHERE o.Status = 'Completed';
+```
+
+- Calls the function for each customer using their `CustomerID`.
+- Returns matching rows from the function.
+- Customers without matching orders are excluded.
+
+**B. INNER JOIN**
+
+Can also be used with inline TVFs:
+
+```
+SELECT
+    c.CustomerName,
+    o.OrderDate,
+    o.TotalAmount
+FROM Customers c
+INNER JOIN dbo.GetCustomerOrders(c.CustomerID) o
+    ON 1 = 1
+WHERE YEAR(o.OrderDate) = 2024;
+```
+
+**C. CROSS APPLY with constant parameters**
+
+```
+SELECT
+    c.CustomerName,
+    s.ProductName,
+    s.TotalRevenue
+FROM Customers c
+CROSS APPLY dbo.GetProductSalesSummary(
+    '2024-01-01',
+    '2024-12-31'
+) s
+WHERE s.TotalRevenue > 10000
+ORDER BY s.TotalRevenue DESC;
+```
+
+Here, the function receives constant date parameters rather than values from each customer row.
+
+### **5. Key concepts to remember**
+
+| Keyword / Operator         | Purpose                                                        |
+| -------------------------- | -------------------------------------------------------------- |
+| `RETURNS TABLE`            | Defines an inline TVF.                                         |
+| `RETURNS @TableName TABLE` | Declares the return table for a multi-statement TVF.           |
+| `RETURN`                   | Returns the result set.                                        |
+| `INSERT INTO @TableName`   | Populates the return table variable.                           |
+| `CROSS APPLY`              | Evaluates the right-side expression using each left-side row.  |
+| `INNER JOIN`               | Combines rows from tables or inline TVFs based on a condition. |
+
+### **6. When to use each type**
+
+- **Inline TVF:** Simple parameterized queries, filtering, and reusable data retrieval. Generally offers better optimization.
+- **Multi-statement TVF:** Complex processing that requires multiple statements or intermediate result construction.
+- **Stored procedure:** Operations that modify data or require more procedural control.
+
+**Key takeaway:** Table-valued functions encapsulate reusable queries that return entire result sets. Inline TVFs are generally preferable for performance and simpler queries, while multi-statement TVFs provide flexibility for more complex processing.
