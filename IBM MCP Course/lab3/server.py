@@ -87,7 +87,39 @@ async def write_file(file_path: str, content: str, ctx: Context) -> str:
         await ctx.report_progress(progress=total, total=total, message="Write Complete")
         await ctx.info(f"File written succesfully to {file_path}")
         return f"FIle wriiten successfully to: {file_path}"
-        
+
     except Exception as e:
         await ctx.error(f"Error createing file: {str(e)}")
         raise
+
+@mcp.tool()
+async def delete_file(file_path: str, ctx: Context) -> str:
+    """Delete a file from the project directory.
+
+    Validates that the path points to a file (not a directory) before deletion.
+
+    Args:
+        file_path: Relative path to the file to delete
+        ctx: MCP context for logging
+
+    Returns:
+        Success or error message describing the operation result
+    """
+    try:
+        path = get_path(file_path)
+
+        # Check if path exists and is a file
+        if path.is_file():
+            path.unlink()
+            await ctx.info(f"Successfully deleted file {file_path}")
+            return f"Successfully deleted file {file_path}"
+        elif path.is_dir():
+            await ctx.warning(f"Error: {file_path} is a directory, not a file")
+            return f"Error: {file_path} is a directory, not a file"
+        else:
+            await ctx.warning(f"File not found: {file_path}")
+            return f"File not found: {file_path}"
+
+    except Exception as e:
+        await ctx.error(f"Error deleting file: {str(e)}")
+        return f"Error deleting file: {str(e)}"
