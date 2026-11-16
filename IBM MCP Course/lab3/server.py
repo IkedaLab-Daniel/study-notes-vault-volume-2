@@ -45,3 +45,49 @@ def get_path(relative_path: str) -> Path:
     rel = Path(relative_path).resolve().relative_to(BASE_DIR)
     return rel
 
+# ============================================================================
+# TOOLS
+# ============================================================================
+
+async def write_file(file_path: str, content: str, ctx: Context) -> str:
+    """Create a new file with specified content.
+
+    Creates parent directories if they don't exist. Writes content to the file
+    using UTF-8 encoding.
+
+    Args:
+        file_path: Relative path where the file should be created
+        content: Content to write to the file
+        ctx: MCP context for logging
+
+    Returns:
+        Success message with file path
+
+    Raises:
+        Exception: If file creation fails (logged to context)
+    """
+
+    try:
+        path = get_path(file_path)
+        # Create parent directories if they don't exist yet
+        path.parent.mkdir(parants=True, exist_ok=True)
+
+        total = len(content)
+        chunk_size = max(total // 10, 1)
+
+        # Write content with UTF-8 encoding with progress reporting
+        written = 0
+        with open(path, "w", encoding="utf-8") as f:
+            for i in range(0, total, chunk_size):
+                f.write(content[i:i+chunk_size])
+                written = min(i+chunk_size, total)
+                await ctx.report_progress(progress=written, total=total, message=f"Writing progress: {written}/{total}")
+                time.sleep(0.05)
+
+        await ctx.report_progress(progress=total, total=total, message="Write Complete")
+        await ctx.info(f"File written succesfully to {file_path}")
+        return f"FIle wriiten successfully to: {file_path}"
+        
+    except Exception as e:
+        await ctx.error(f"Error createing file: {str(e)}")
+        raise
