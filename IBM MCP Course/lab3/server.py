@@ -123,3 +123,31 @@ async def delete_file(file_path: str, ctx: Context) -> str:
     except Exception as e:
         await ctx.error(f"Error deleting file: {str(e)}")
         return f"Error deleting file: {str(e)}"
+
+# ============================================================================
+# RESOURCES
+# ============================================================================
+
+@mcp.resource("file:///{file_name}")
+async def read_file_resource(file_name: str) -> dict:
+    """Read the content of a file as an MCP resource.
+
+    Provides file content access through the MCP resource protocol using
+    the file:/// URI scheme.
+
+    Args:
+        file_name: Relative path to the file to read
+
+    Returns:
+        Dictionary containing either file_content or error message
+    """
+    try:
+        path = get_path(file_name)
+
+        # validate
+        if not path.exists() or not path.is_file():
+            return {"error": f"Error: {file_name} is not a valud file"}
+        # Read
+        return {"file_content": path.read_text(encoding='utf-8')}
+    except Exception as e:
+        return {"error": f"Error reading file: {str(e)}"}
