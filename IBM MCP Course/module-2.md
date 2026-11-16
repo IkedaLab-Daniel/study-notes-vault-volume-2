@@ -222,3 +222,97 @@ The application can then:
 - STDIO launches a local server as a child process and communicates through standard input/output pipes.
 - Both HTTP and STDIO can be integrated with ReAct agents using MCP sessions and tool adapters.
 - MultiServer MCP Client allows one application to use tools from multiple MCP servers.
+
+## **Build an Enhanced MCP Server**
+
+### **Learning Objectives**
+
+- Set up the development workspace and MCP server.
+- Use MCP context for logging, progress reporting, and user input elicitation.
+- Implement MCP primitives: tools, resources, and prompts.
+
+### **1. Workspace and Server Setup**
+
+- Clone the project template from a GitHub repository.
+- Create and activate a Python virtual environment (`.venv`) using PIP.
+- Install dependencies listed in `requirements.txt`.
+- In `server.py`, import required dependencies and define:
+  - `BASE_DIR` for the project directory.
+  - A schema for structured user elicitation.
+  - The FastMCP server instance.
+  - A `get_path()` helper to convert relative paths into absolute paths.
+
+### **2. MCP Context**
+
+The FastMCP `Context` object provides access to advanced server capabilities, including:
+
+- **Logging:** Record operations, errors, and relevant messages.
+- **Progress Reporting:** Communicate execution progress to clients.
+- **User Elicitation:** Request structured information or confirmation from users during execution.
+
+### **3. MCP Tools**
+
+Tools allow LLMs to perform active operations and interact with their environment.
+
+Two file-management tools are implemented:
+
+- **write_file:** Creates files using a relative path and provided content. It standardizes paths, creates missing parent directories, writes content in chunks, and uses context for progress reporting and logging.
+- **delete_file:** Deletes an existing file after validating its path. It raises an error when the target is not a file, such as a directory.
+
+### **4. MCP Resources**
+
+Resources provide controlled access to readily available information, typically static or sometimes dynamic data.
+
+- Identified using unique URIs, which can contain parameterized paths.
+- Best suited for passive data access rather than operations.
+- Resource URIs have predefined structures that clients must know.
+- Resource templates support dynamic URI parameters.
+
+**Implemented resources:**
+
+- **File Resource Template:** Retrieves the contents of a specified file after validating its existence.
+- **Directory Listing Resource:** Returns files and directories in the current directory, including metadata, as a JSON object.
+
+**Important URI detail:**
+
+\- `file:///` uses three forward slashes because `file://` is a reserved URI format that expects a host.
+
+**Tools vs. Resources:**
+
+- Tools are better for active operations, such as database calls, file creation, and deletion.
+- Resources are better for passive access to existing information, such as reading files and listing directories.
+
+### **5. MCP Prompts**
+
+Prompts are reusable, structured templates that guide LLMs through specific tasks. They are user-controlled, allowing users to select and customize prompts through parameters.
+
+**Implemented prompts:**
+
+- **Code Review Prompt:** Checks whether a target file exists, extracts its content and programming language, and generates a structured prompt for code review and quality evaluation.
+- **Documentation Generation Prompt:** Uses context-based user elicitation to request the source file and desired documentation filename, then generates a prompt using the extracted file content and language.
+
+### **6. User Elicitation**
+
+User elicitation allows MCP servers to request structured input from users through the `Context.elicit()` method.
+
+Common use cases:
+
+- **Missing Parameters:** Request required information that is unavailable.
+- **Clarification:** Confirm ambiguous instructions or decisions.
+- **Progressive Disclosure:** Collect information gradually as needed.
+
+It requires a corresponding handler function on the MCP client to process elicitation requests.
+
+### **7. Server Entry Point**
+
+- Create an entry point in `server.py` to start the MCP server when the script runs.
+- Configure the server to communicate with MCP clients through standard input/output (**STDIO**).
+
+### **Key Takeaways**
+
+- **MCP** is a universal protocol that allows LLMs to interact with their environment instead of only generating text.
+- **Tools** enable models to perform actions.
+- **Resources** provide controlled access to information.
+- **Prompts** provide reusable, structured workflows.
+- **Context** enables logging, progress reporting, and user elicitation.
+- **MCP Servers** expose capabilities, while **MCP Clients** connect to servers and coordinate their interaction with LLMs.
