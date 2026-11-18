@@ -42,6 +42,19 @@ form .submit{
     padding: 2px 8px;
 }
 
+form .advanced{
+    padding: 12px 24px;
+    border-radius: 20px;
+    border: none;
+    background-color: #326ef3;
+    color: white;
+}
+
+form .advanced:hover{
+    cursor: pointer;
+    background-color: #6c95ec;
+}
+
 .advanced-container {
     display: flex;
     justify-content: center;
