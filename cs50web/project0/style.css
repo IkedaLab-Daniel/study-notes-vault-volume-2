@@ -10,6 +10,8 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .top-right-links {
@@ -66,4 +68,9 @@ form .advanced:hover{
     display: flex;
     justify-content: left;
     align-items: start;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
 }
