@@ -37,3 +37,7 @@ form input[type="text"]:focus {
     border: 2px solid rgb(114, 114, 114);
     outline: none;
 }
+
+form .submit{
+    padding: 2px 8px;
+}
