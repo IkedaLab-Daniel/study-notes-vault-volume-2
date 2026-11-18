@@ -41,3 +41,16 @@ form input[type="text"]:focus {
 form .submit{
     padding: 2px 8px;
 }
+
+.advanced-container {
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    flex-direction: column;
+}
+
+.advanced-form {
+    display: flex;
+    justify-content: left;
+    align-items: start;
+}
