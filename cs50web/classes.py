@@ -1,9 +1,24 @@
-class Point():
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+class Flight():
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.passengers = []
 
+    def add_passenger(self, name):
+        open_seats = self.open_seats()
 
-p = Point(3,6)
-print(p.x)
-print(p.y)
+        if open_seats > 0:
+            self.passengers.append(name)
+            print("Added")
+        else:
+            print("No more seat left")
+
+    def open_seats(self):
+        passengers_count = len(self.passengers)
+        return self.capacity - passengers_count
+    
+
+flight = Flight(3)
+flight.add_passenger("Mark")
+flight.add_passenger("Daniel")
+flight.add_passenger("Callejas")
+flight.add_passenger("foo")
