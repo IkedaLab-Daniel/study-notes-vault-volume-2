@@ -7,3 +7,6 @@ def index(request):
 
 def ice(request):
     return HttpResponse("Hello, Ice!")
+
+def greet(request, name):
+    return HttpResponse(f"Hello, {name.capitalize()}")
