@@ -3,7 +3,9 @@
 {% block body %}
     <h1>Add tasks</h1>
     <form action="">
+        {% csrf_token %}
         <input type="text" name="task"">
         <input type="submit">
     </form>
+    <a href="{% url 'tasks:index' %}">View Tasks</a>
 {% endblock %}
