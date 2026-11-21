@@ -4,6 +4,9 @@
     <ol>
         {% for task in tasks %}
             <li>{{ task }}</li>
+
+        {% empty %}
+            <p>No task</p>
         {% endfor%}
     </ol>
 
