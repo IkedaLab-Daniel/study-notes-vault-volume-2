@@ -11,20 +11,21 @@ endpoint = os.getenv('AZURE_PROJECT_ENDPOINT')
 key = os.getenv('AZURE_API_KEY')
 
 def analyze_read():
-    formUrl = "https://raw.githubusercontent.com/Azure-Samples/cognitive-services-REST-api-samples/master/curl/form-recognizer/sample-layout.pdf"
 
-    document_intelligence_client = DocumentIntelligenceClient(
-        endpoint=endpoint,
-        credential=AzureKeyCredential(key)
-    )
+    with open('./sample-layout.pdf', 'rb') as f:
+        document_intelligence_client = DocumentIntelligenceClient(
+            endpoint=endpoint,
+            credential=AzureKeyCredential(key)
+        )
 
-    poller = document_intelligence_client.begin_analyze_document(
-        "prebuilt-read", AnalyzeDocumentRequest(url_source=formUrl)
-    )
+        poller = document_intelligence_client.begin_analyze_document(
+            # "prebuilt-read", AnalyzeDocumentRequest(url_source=f)
+            "prebuilt-read", body=f
+        )
 
-    result = poller.result()
+        result = poller.result()
 
-    print("Document contains content: ", result.content)
+        print("Document contains content: ", result.content)
 
 if __name__ == "__main__":
     analyze_read()
