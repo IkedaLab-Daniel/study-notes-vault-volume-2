@@ -1,7 +1,6 @@
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
-import numpy as np
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -15,7 +14,7 @@ llm_endpoint  = os.getenv('AZURE_MODEL_PROJECT_ENDPOINT')
 
 def analyze_read():
 
-    with open('./scannerd.pdf', 'rb') as f:
+    with open('./file2.pdf', 'rb') as f:
         document_intelligence_client = DocumentIntelligenceClient(
             endpoint=endpoint,
             credential=AzureKeyCredential(key)
@@ -29,19 +28,31 @@ def analyze_read():
         result = poller.result()
 
         print("Document contains content: ", result.content)
+        return result.content
 
-def verify():
+def verify(content):
     client = OpenAI(
         base_url=llm_endpoint,
         api_key=key,
     )
 
+    prompt = f"""
+Return True or False only.
+Verify if the content below is actually a content of a Securities and Exchange Commission:
+{content}
+"""
+
     response = client.responses.create(
         model=model_id,
-        input="What is the capital of France?",
+        input=prompt,
     )
 
-    print(f"answer: {response.output[0].content[0].text}")
+    answer = response.output[0].content[0].text
+
+    # print(f"answer: {answer}")
+    return answer
 
 if __name__ == "__main__":
-    verify()
+    content = analyze_read()
+    answer = verify(content)
+    print("Final verification result:", answer)
